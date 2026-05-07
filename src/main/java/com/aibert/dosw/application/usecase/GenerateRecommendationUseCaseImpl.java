@@ -2,19 +2,25 @@ package com.aibert.dosw.application.usecase;
 
 import com.aibert.dosw.domain.model.Recommendation;
 import com.aibert.dosw.domain.model.StudentActivityLog;
+import com.aibert.dosw.domain.model.TaskDTO;
 import com.aibert.dosw.domain.port.in.GenerateRecommendationUseCase;
 import com.aibert.dosw.domain.port.out.GenerativeAiPort;
 import com.aibert.dosw.domain.port.out.ProfileServicePort;
 import com.aibert.dosw.domain.port.out.RecommendationRepository;
 import com.aibert.dosw.domain.port.out.StudentActivityLogRepository;
+import com.aibert.dosw.domain.port.out.TaskServicePort;
 import com.aibert.dosw.domain.exception.InsufficientHistoryException;
 import com.aibert.dosw.infrastructure.adapters.in.rest.dto.DailyRecommendationDTO;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -22,10 +28,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GenerateRecommendationUseCaseImpl implements GenerateRecommendationUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(GenerateRecommendationUseCaseImpl.class);
+
     private final RecommendationRepository repository;
     private final ProfileServicePort profileServicePort;
     private final GenerativeAiPort generativeAiPort;
     private final StudentActivityLogRepository activityLogRepository;
+    private final TaskServicePort taskServicePort;
 
     @Override
     public DailyRecommendationDTO execute(Long studentId) {
@@ -39,12 +48,88 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         // 1. Armar el Contexto Orquestando diferentes fuentes
         String enrichedContext = buildEnrichedContext(studentId);
 
-        // 2. Llamar a la API externa
+        // 2. Llamar a la API externa (protegida con Circuit Breaker + Retry)
         Recommendation newRecommendation = generativeAiPort.generateRecommendation(studentId, enrichedContext);
+
+        // 3. Calcular confidenceScore interno basado en cantidad y calidad de datos (R18-T5)
+        double internalScore = calculateInternalConfidenceScore(studentId);
+        double aiScore = newRecommendation.getConfidenceScore() != null ? newRecommendation.getConfidenceScore() : 0.0;
+        double combinedScore = combineConfidenceScores(internalScore, aiScore);
+        newRecommendation.setConfidenceScore(combinedScore);
+        log.info("ConfidenceScore para studentId={}: interno={}, ia={}, combinado={}",
+                studentId, internalScore, aiScore, combinedScore);
         
-        // 3. Guardar y retornar
+        // 4. Guardar y retornar
         Recommendation saved = repository.save(newRecommendation);
         return mapToDto(saved);
+    }
+
+    /**
+     * R18-T5: Calcula el confidenceScore basado en la cantidad y calidad de datos del estudiante.
+     * 
+     * Factores considerados:
+     * - Cantidad de registros de actividad (30% del peso)
+     * - Calidad de los datos: promedio de focusScore (25% del peso)
+     * - Antigüedad del historial en semanas (25% del peso)
+     * - Diversidad de materias estudiadas (20% del peso)
+     * 
+     * @return score entre 0.0 y 1.0
+     */
+    private double calculateInternalConfidenceScore(Long studentId) {
+        List<StudentActivityLog> logs = activityLogRepository.findByStudentId(studentId);
+
+        if (logs.isEmpty()) {
+            return 0.0;
+        }
+
+        // Factor 1: Cantidad de datos (más logs = más confianza, se satura en 50 registros)
+        double dataQuantityScore = Math.min(1.0, logs.size() / 50.0);
+
+        // Factor 2: Calidad de datos (promedio de focusScore normalizado a 0-1)
+        double avgFocusScore = logs.stream()
+                .filter(l -> l.getFocusScore() != null && l.getFocusScore() > 0)
+                .mapToInt(StudentActivityLog::getFocusScore)
+                .average()
+                .orElse(50.0) / 100.0;
+
+        // Factor 3: Antigüedad del historial (más semanas = más confianza, se satura en 8 semanas)
+        LocalDateTime oldestDate = logs.stream()
+                .map(StudentActivityLog::getLogDate)
+                .filter(Objects::nonNull)
+                .min(LocalDateTime::compareTo)
+                .orElse(LocalDateTime.now());
+        long daysOfHistory = ChronoUnit.DAYS.between(oldestDate, LocalDateTime.now());
+        double historyScore = Math.min(1.0, daysOfHistory / 56.0); // 56 días = 8 semanas
+
+        // Factor 4: Diversidad de materias (más materias = mejor panorama, se satura en 5)
+        long uniqueSubjects = logs.stream()
+                .map(StudentActivityLog::getSubject)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+        double diversityScore = Math.min(1.0, uniqueSubjects / 5.0);
+
+        // Ponderación final
+        double internalScore = (dataQuantityScore * 0.30)
+                + (avgFocusScore * 0.25)
+                + (historyScore * 0.25)
+                + (diversityScore * 0.20);
+
+        return Math.round(internalScore * 100.0) / 100.0;
+    }
+
+    /**
+     * Combina el score interno (basado en datos) con el score de la IA.
+     * - Si la IA no participó (aiScore == 0.0): usa solo el score interno.
+     * - Si la IA participó: 60% interno + 40% IA para anclar la confianza a datos reales.
+     */
+    private double combineConfidenceScores(double internalScore, double aiScore) {
+        if (aiScore <= 0.0) {
+            // Fallback: solo score interno (la IA no generó nada útil)
+            return internalScore;
+        }
+        double combined = (internalScore * 0.6) + (aiScore * 0.4);
+        return Math.round(combined * 100.0) / 100.0;
     }
 
     private String buildEnrichedContext(Long studentId) {
@@ -58,19 +143,31 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         List<StudentActivityLog> logs = activityLogRepository.findByStudentId(studentId);
         if (!logs.isEmpty()) {
             context.append("Historial reciente de actividad:\n");
-            for (StudentActivityLog log : logs) {
-                context.append("- Materia: ").append(log.getSubject())
-                       .append(" | Acción: ").append(log.getActivityType())
-                       .append(" | Completado a las: ").append(log.getActualCompletionTime() != null ? log.getActualCompletionTime().toLocalTime() : "N/A")
+            for (StudentActivityLog activityLog : logs) {
+                context.append("- Materia: ").append(activityLog.getSubject())
+                       .append(" | Acción: ").append(activityLog.getActivityType())
+                       .append(" | Completado a las: ").append(activityLog.getActualCompletionTime() != null ? activityLog.getActualCompletionTime().toLocalTime() : "N/A")
                        .append("\n");
             }
         } else {
             context.append("No hay historial de actividad previo.\n");
         }
 
-        // Tareas actuales (Mock por ahora)
-        List<String> mockTasks = List.of("Matemáticas Avanzadas", "Historia del Arte");
-        context.append("Tareas pendientes actuales: ").append(String.join(", ", mockTasks)).append(".\n");
+        // Tareas pendientes reales del task-service (via Feign / Adapter)
+        try {
+            List<TaskDTO> pendingTasks = taskServicePort.getPrioritizedTasks(studentId);
+            if (pendingTasks != null && !pendingTasks.isEmpty()) {
+                List<String> taskNames = pendingTasks.stream()
+                        .map(t -> t.getTitle() + " (" + t.getSubject() + ", prioridad: " + t.getPriorityLevel() + ")")
+                        .collect(Collectors.toList());
+                context.append("Tareas pendientes actuales: ").append(String.join(", ", taskNames)).append(".\n");
+            } else {
+                context.append("No hay tareas pendientes registradas.\n");
+            }
+        } catch (Exception e) {
+            log.warn("No se pudieron obtener tareas del task-service para studentId={}: {}", studentId, e.getMessage());
+            context.append("No se pudieron obtener las tareas pendientes en este momento.\n");
+        }
 
         return context.toString();
     }

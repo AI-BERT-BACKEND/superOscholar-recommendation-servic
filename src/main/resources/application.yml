@@ -11,8 +11,79 @@ spring:
   rabbitmq:
     host: localhost
     port: 5672
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
 
+# --- Selector de proveedor de IA ---
+# Opciones: "groq" (gratuito) o "gemini" (requiere billing activo)
+ai:
+  provider: "${AI_PROVIDER:groq}"
+
+# --- Configuración Groq (GRATUITO - https://console.groq.com) ---
+groq:
+  api:
+    base-url: "https://api.groq.com/openai/v1"
+    key: "${GROQ_API_KEY:}"
+    model: "${GROQ_MODEL:llama-3.3-70b-versatile}"
+
+# --- Configuración Gemini (requiere billing o cuenta nueva) ---
 gemini:
   api:
     base-url: "https://generativelanguage.googleapis.com/v1beta"
-    key: "AIzaSyCEVaSj1B070bEqdjEAWdpm2fH1sErhYPw"
+    key: "${GEMINI_API_KEY:}"
+    model: "${GEMINI_MODEL:gemini-2.0-flash}"
+
+# --- URLs de microservicios internos ---
+services:
+  planning:
+    url: "${PLANNING_SERVICE_URL:http://localhost:8083}"
+  profile:
+    url: "${PROFILE_SERVICE_URL:http://localhost:8081}"
+
+# --- Feign Client Timeouts ---
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 15000
+      externalAiClient:
+        connectTimeout: 5000
+        readTimeout: 20000
+      groqAiClient:
+        connectTimeout: 5000
+        readTimeout: 20000
+      planningServiceClient:
+        connectTimeout: 3000
+        readTimeout: 10000
+      profileServiceClient:
+        connectTimeout: 3000
+        readTimeout: 10000
+
+# --- Resilience4j Configuration ---
+resilience4j:
+  circuitbreaker:
+    instances:
+      geminiAI:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+        minimumNumberOfCalls: 5
+  retry:
+    instances:
+      geminiAI:
+        maxAttempts: 3
+        waitDuration: 2s
+        retryExceptions:
+          - feign.FeignException
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+  timelimiter:
+    instances:
+      geminiAI:
+        timeoutDuration: 20s
