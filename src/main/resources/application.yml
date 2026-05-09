@@ -4,31 +4,28 @@ server:
 spring:
   application:
     name: recommendation-service
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/aibert_recommendation
-      auto-index-creation: true
-  rabbitmq:
-    host: localhost
-    port: 5672
+
   cloud:
     openfeign:
       circuitbreaker:
         enabled: true
 
+jwt:
+  secret: ${JWT_SECRET}
+
 # --- Selector de proveedor de IA ---
-# Opciones: "groq" (gratuito) o "gemini" (requiere billing activo)
+# Opciones: "groq" o "gemini"
 ai:
   provider: "${AI_PROVIDER:groq}"
 
-# --- Configuración Groq (GRATUITO - https://console.groq.com) ---
+# --- Configuración Groq ---
 groq:
   api:
     base-url: "https://api.groq.com/openai/v1"
     key: "${GROQ_API_KEY:}"
     model: "${GROQ_MODEL:llama-3.3-70b-versatile}"
 
-# --- Configuración Gemini (requiere billing o cuenta nueva) ---
+# --- Configuración Gemini ---
 gemini:
   api:
     base-url: "https://generativelanguage.googleapis.com/v1beta"
@@ -39,6 +36,7 @@ gemini:
 services:
   planning:
     url: "${PLANNING_SERVICE_URL:http://localhost:8083}"
+
   profile:
     url: "${PROFILE_SERVICE_URL:http://localhost:8081}"
 
@@ -49,15 +47,19 @@ feign:
       default:
         connectTimeout: 5000
         readTimeout: 15000
+
       externalAiClient:
         connectTimeout: 5000
         readTimeout: 20000
+
       groqAiClient:
         connectTimeout: 5000
         readTimeout: 20000
+
       planningServiceClient:
         connectTimeout: 3000
         readTimeout: 10000
+
       profileServiceClient:
         connectTimeout: 3000
         readTimeout: 10000
@@ -74,6 +76,7 @@ resilience4j:
         permittedNumberOfCallsInHalfOpenState: 3
         slidingWindowType: COUNT_BASED
         minimumNumberOfCalls: 5
+
   retry:
     instances:
       geminiAI:
@@ -83,7 +86,66 @@ resilience4j:
           - feign.FeignException
           - java.io.IOException
           - java.net.SocketTimeoutException
+
   timelimiter:
     instances:
       geminiAI:
         timeoutDuration: 20s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+  endpoint:
+    health:
+      show-details: never
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+      auto-index-creation: true
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: qa
+
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+      auto-index-creation: true
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+      auto-index-creation: true
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}

@@ -1,13 +1,42 @@
 services:
-  mongodb:
+  mongo:
     image: mongo:7
-    container_name: recommendation-mongodb
-    ports:
-      - "27017:27017"
+    container_name: recommendationservic-mongo
+    restart: unless-stopped
+
     environment:
-      MONGO_INITDB_DATABASE: aibert_recommendation
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+
+    ports:
+      - "5438:27017"
+
     volumes:
-      - mongo_data:/data/db
+      - recommendationservic_mongo_data:/data/db
+
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: recommendationservic-service
+    restart: unless-stopped
+
+    ports:
+      - "8086:8080"
+
+    environment:
+      MONGO_URI: ${MONGO_URI}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      JWT_SECRET: ${JWT_SECRET}
+
+    depends_on:
+      mongo:
+        condition: service_healthy
 
 volumes:
-  mongo_data:
+  recommendationservic_mongo_data:
