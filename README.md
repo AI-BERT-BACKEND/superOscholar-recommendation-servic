@@ -277,7 +277,7 @@ Genera y retorna un plan diario basado en el estado actual de las tareas del est
 
 Esta sección muestra los flujos de interacción entre componentes del microservicio mediante diagramas de secuencia.
 
----
+
 
 ### 🔁 Diagrama de Secuencia — `POST /api/v1/recommendations`
 
@@ -289,7 +289,7 @@ Flujo completo de generación de recomendaciones diarias para un estudiante: val
 
 </div>
 
----
+
 
 ### 🔁 Diagrama de Secuencia — `GET /api/v1/recommendations/daily/{studentId}`
 
@@ -301,7 +301,7 @@ Flujo de consulta del plan diario: obtención de tareas priorizadas, clasificaci
 
 </div>
 
----
+
 
 ### 🏗️ Arquitectura Hexagonal — Componentes clave
 
