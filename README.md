@@ -275,21 +275,45 @@ Genera y retorna un plan diario basado en el estado actual de las tareas del est
 
 ## 7. 📊 Diagramas
 
-Esta sección muestra la estructura conceptual de la arquitectura hexagonal y la integración.
+Esta sección muestra los flujos de interacción entre componentes del microservicio mediante diagramas de secuencia.
 
-### 🏗️ Diagrama de Arquitectura Hexagonal
+---
+
+### 🔁 Diagrama de Secuencia — `POST /api/v1/recommendations`
+
+Flujo completo de generación de recomendaciones diarias para un estudiante: validación, consulta de historial, enriquecimiento de contexto con IA y persistencia del resultado.
+
+<div align="center">
+
+![Sequence POST recommendations](docs/images/sequence_recommendations_post.png)
+
+</div>
+
+---
+
+### 🔁 Diagrama de Secuencia — `GET /api/v1/recommendations/daily/{studentId}`
+
+Flujo de consulta del plan diario: obtención de tareas priorizadas, clasificación de sugeridas vs reprogramables, y cálculo de alertas de urgencia.
+
+<div align="center">
+
+![Sequence GET daily plan](docs/images/sequence_recommendations_daily_get.png)
+
+</div>
+
+---
+
+### 🏗️ Arquitectura Hexagonal — Componentes clave
 
 El microservicio de Recommendations separa sus responsabilidades:
 
 - **Infraestructura In (REST Controllers):** `RecommendationController` recibe peticiones.
 - **Aplicación (Use Cases):** `GenerateRecommendationUseCaseImpl`, `GenerateDailyPlanUseCaseImpl`.
 - **Dominio:** `Recommendation`, `StudentActivityLog`.
-- **Infraestructura Out (Adapters):** 
+- **Infraestructura Out (Adapters):**
   - `GeminiAdapter`, `GroqAdapter` para la IA externa.
   - `MongoRecommendationRepositoryAdapter` para persistencia.
   - `ProfileFeignClientAdapter`, `TaskFeignClientAdapter` para servicios hermanos.
-
-*(Nota: En el repositorio físico se ubicarían imágenes de diagramas de secuencia en `docs/images/`)*
 
 ## 8. ⚠️ Manejo de Errores
 
