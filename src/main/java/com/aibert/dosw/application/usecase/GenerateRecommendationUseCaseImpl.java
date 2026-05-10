@@ -153,19 +153,42 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
             context.append("No hay historial de actividad previo.\n");
         }
 
-        // Tareas pendientes reales del task-service (via Feign / Adapter)
+        // Tareas pendientes reales del planning-service (via Feign / Adapter)
         try {
             List<TaskDTO> pendingTasks = taskServicePort.getPrioritizedTasks(studentId);
             if (pendingTasks != null && !pendingTasks.isEmpty()) {
-                List<String> taskNames = pendingTasks.stream()
-                        .map(t -> t.getTitle() + " (" + t.getSubject() + ", prioridad: " + t.getPriorityLevel() + ")")
-                        .collect(Collectors.toList());
-                context.append("Tareas pendientes actuales: ").append(String.join(", ", taskNames)).append(".\n");
+                context.append("\nTareas priorizadas por el engine de planificación (ordenadas por urgencia):\n");
+                for (TaskDTO task : pendingTasks) {
+                    context.append("- ").append(task.getTitle())
+                           .append(" [Materia: ").append(task.getSubjectId()).append("]")
+                           .append(" | Prioridad: ").append(task.getPriorityLevel())
+                           .append(" (score: ").append(String.format("%.1f", task.getPriorityScore())).append(")")
+                           .append(" | Deadline: ").append(task.getDeadline() != null ? task.getDeadline().toLocalDate() : "sin fecha")
+                           .append(" | Duración estimada: ").append(task.getEstimatedDurationMinutes()).append(" min")
+                           .append("\n");
+                }
+
+                // Métricas agregadas para la IA
+                int totalMinutes = pendingTasks.stream()
+                        .mapToInt(TaskDTO::getEstimatedDurationMinutes)
+                        .sum();
+                long criticalCount = pendingTasks.stream()
+                        .filter(t -> "CRITICAL".equalsIgnoreCase(t.getPriorityLevel()))
+                        .count();
+                long urgentCount = pendingTasks.stream()
+                        .filter(t -> t.getDeadline() != null && !t.getDeadline().toLocalDate().isAfter(java.time.LocalDate.now().plusDays(1)))
+                        .count();
+
+                context.append("Resumen de carga: ")
+                       .append(pendingTasks.size()).append(" tareas pendientes, ")
+                       .append(totalMinutes).append(" minutos totales estimados, ")
+                       .append(criticalCount).append(" en prioridad CRITICAL, ")
+                       .append(urgentCount).append(" con deadline en las próximas 24h.\n");
             } else {
                 context.append("No hay tareas pendientes registradas.\n");
             }
         } catch (Exception e) {
-            log.warn("No se pudieron obtener tareas del task-service para studentId={}: {}", studentId, e.getMessage());
+            log.warn("No se pudieron obtener tareas del planning-service para studentId={}: {}", studentId, e.getMessage());
             context.append("No se pudieron obtener las tareas pendientes en este momento.\n");
         }
 
