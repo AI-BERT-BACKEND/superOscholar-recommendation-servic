@@ -1,0 +1,40 @@
+@startuml
+' Sequence diagram: GET /api/v1/recommendations/daily/{studentId}
+
+title GET /api/v1/recommendations/daily/{studentId} - Daily Plan
+
+actor Client
+participant "RecommendationController" as Controller
+participant "GenerateDailyPlanUseCaseImpl" as UseCase
+participant "TaskServicePort" as TaskPort
+participant "GlobalExceptionHandler" as ErrorHandler
+
+
+Client -> Controller: GET /api/v1/recommendations/daily/{studentId}
+activate Controller
+Controller -> UseCase: execute(studentId)
+activate UseCase
+
+UseCase -> TaskPort: getPrioritizedTasks(studentId)
+alt Task service error
+  TaskPort --> UseCase: error
+  UseCase -> ErrorHandler: Exception
+  ErrorHandler --> Client: 500 Internal Server Error
+  deactivate UseCase
+  deactivate Controller
+else Tasks returned
+  TaskPort --> UseCase: prioritizedTasks
+
+  UseCase -> UseCase: suggestedTasks = top 5
+  UseCase -> UseCase: reschedulableTasks = deadline > 3 days
+  UseCase -> UseCase: reschedulableTasks (priority LOW/MEDIUM)
+  UseCase -> UseCase: totalEstimatedMinutes
+  UseCase -> UseCase: urgentAlert if deadline <= tomorrow
+
+  UseCase --> Controller: DailyPlanDTO
+  Controller --> Client: 200 OK
+  deactivate UseCase
+  deactivate Controller
+end
+
+@enduml

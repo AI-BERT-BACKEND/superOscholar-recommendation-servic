@@ -1,0 +1,82 @@
+@startuml
+' Sequence diagram: POST /api/v1/recommendations
+
+title POST /api/v1/recommendations - Generate Recommendations
+
+actor Client
+participant "RecommendationController" as Controller
+participant "GenerateRecommendationUseCaseImpl" as UseCase
+participant "StudentActivityLogRepository" as ActivityRepo
+participant "RecommendationRepository" as RecRepo
+participant "ProfileServicePort" as ProfilePort
+participant "TaskServicePort" as TaskPort
+participant "GenerativeAiPort" as AiPort
+participant "GlobalExceptionHandler" as ErrorHandler
+
+
+Client -> Controller: POST /api/v1/recommendations
+activate Controller
+Controller -> Controller: Validate body (studentId not null)
+
+
+alt Validation error
+  Controller -> ErrorHandler: MethodArgumentNotValidException
+  ErrorHandler --> Client: 400 Bad Request
+  deactivate Controller
+else Valid request
+  Controller -> UseCase: execute(studentId)
+  activate UseCase
+
+  UseCase -> ActivityRepo: findFirstByStudentIdOrderByLogDateAsc(studentId)
+  alt Insufficient history (< 2 weeks)
+    UseCase -> ErrorHandler: InsufficientHistoryException
+    ErrorHandler --> Client: 422 Unprocessable Entity
+    deactivate UseCase
+    deactivate Controller
+  else History ok
+    UseCase -> RecRepo: findByStudentIdAndDateGenerated(studentId, today)
+    alt Recommendation already exists
+      RecRepo --> UseCase: Recommendation
+      UseCase --> Controller: DailyRecommendationDTO
+      Controller --> Client: 200 OK
+      deactivate UseCase
+      deactivate Controller
+    else No recommendation today
+      UseCase -> ProfilePort: getLearningStyle(studentId)
+      ProfilePort --> UseCase: learningStyle
+
+      UseCase -> ActivityRepo: findByStudentId(studentId)
+      ActivityRepo --> UseCase: activityLogs
+
+      UseCase -> TaskPort: getPrioritizedTasks(studentId)
+      alt Task service error
+        TaskPort --> UseCase: error
+        UseCase -> UseCase: Continue with partial context
+      else Tasks available
+        TaskPort --> UseCase: tasks
+      end
+
+      UseCase -> AiPort: generateRecommendation(studentId, enrichedContext)
+      AiPort --> UseCase: Recommendation (aiScore)
+
+      UseCase -> UseCase: calculateInternalConfidenceScore
+      UseCase -> UseCase: combine internal + ai scores
+
+      UseCase -> RecRepo: save(Recommendation)
+      RecRepo --> UseCase: saved Recommendation
+
+      UseCase --> Controller: DailyRecommendationDTO
+      Controller --> Client: 200 OK
+      deactivate UseCase
+      deactivate Controller
+    end
+  end
+end
+
+
+alt Unexpected error
+  UseCase -> ErrorHandler: Exception
+  ErrorHandler --> Client: 500 Internal Server Error
+end
+
+@enduml
