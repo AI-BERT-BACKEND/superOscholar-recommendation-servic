@@ -1,5 +1,6 @@
 package com.aibert.dosw.application.usecase;
 
+import com.aibert.dosw.application.mapper.RecommendationMapper;
 import com.aibert.dosw.domain.model.Recommendation;
 import com.aibert.dosw.domain.model.StudentActivityLog;
 import com.aibert.dosw.domain.model.TaskDTO;
@@ -22,7 +23,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +35,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
     private final GenerativeAiPort generativeAiPort;
     private final StudentActivityLogRepository activityLogRepository;
     private final TaskServicePort taskServicePort;
+    private final RecommendationMapper recommendationMapper;
 
     @Override
     public DailyRecommendationDTO execute(Long studentId) {
@@ -42,7 +43,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
 
         Optional<Recommendation> existing = repository.findByStudentIdAndDateGenerated(studentId, LocalDate.now());
         if (existing.isPresent()) {
-            return mapToDto(existing.get());
+            return recommendationMapper.toDailyRecommendationDto(existing.get());
         }
 
         // 1. Armar el Contexto Orquestando diferentes fuentes
@@ -51,21 +52,23 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         // 2. Llamar a la API externa (protegida con Circuit Breaker + Retry)
         Recommendation newRecommendation = generativeAiPort.generateRecommendation(studentId, enrichedContext);
 
-        // 3. Calcular confidenceScore interno basado en cantidad y calidad de datos (R18-T5)
+        // 3. Calcular confidenceScore interno basado en cantidad y calidad de datos
+        // (R18-T5)
         double internalScore = calculateInternalConfidenceScore(studentId);
         double aiScore = newRecommendation.getConfidenceScore() != null ? newRecommendation.getConfidenceScore() : 0.0;
         double combinedScore = combineConfidenceScores(internalScore, aiScore);
         newRecommendation.setConfidenceScore(combinedScore);
         log.info("ConfidenceScore para studentId={}: interno={}, ia={}, combinado={}",
                 studentId, internalScore, aiScore, combinedScore);
-        
+
         // 4. Guardar y retornar
         Recommendation saved = repository.save(newRecommendation);
-        return mapToDto(saved);
+        return recommendationMapper.toDailyRecommendationDto(saved);
     }
 
     /**
-     * R18-T5: Calcula el confidenceScore basado en la cantidad y calidad de datos del estudiante.
+     * R18-T5: Calcula el confidenceScore basado en la cantidad y calidad de datos
+     * del estudiante.
      * 
      * Factores considerados:
      * - Cantidad de registros de actividad (30% del peso)
@@ -82,7 +85,8 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
             return 0.0;
         }
 
-        // Factor 1: Cantidad de datos (más logs = más confianza, se satura en 50 registros)
+        // Factor 1: Cantidad de datos (más logs = más confianza, se satura en 50
+        // registros)
         double dataQuantityScore = Math.min(1.0, logs.size() / 50.0);
 
         // Factor 2: Calidad de datos (promedio de focusScore normalizado a 0-1)
@@ -92,7 +96,8 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
                 .average()
                 .orElse(50.0) / 100.0;
 
-        // Factor 3: Antigüedad del historial (más semanas = más confianza, se satura en 8 semanas)
+        // Factor 3: Antigüedad del historial (más semanas = más confianza, se satura en
+        // 8 semanas)
         LocalDateTime oldestDate = logs.stream()
                 .map(StudentActivityLog::getLogDate)
                 .filter(Objects::nonNull)
@@ -101,7 +106,8 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         long daysOfHistory = ChronoUnit.DAYS.between(oldestDate, LocalDateTime.now());
         double historyScore = Math.min(1.0, daysOfHistory / 56.0); // 56 días = 8 semanas
 
-        // Factor 4: Diversidad de materias (más materias = mejor panorama, se satura en 5)
+        // Factor 4: Diversidad de materias (más materias = mejor panorama, se satura en
+        // 5)
         long uniqueSubjects = logs.stream()
                 .map(StudentActivityLog::getSubject)
                 .filter(Objects::nonNull)
@@ -121,7 +127,8 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
     /**
      * Combina el score interno (basado en datos) con el score de la IA.
      * - Si la IA no participó (aiScore == 0.0): usa solo el score interno.
-     * - Si la IA participó: 60% interno + 40% IA para anclar la confianza a datos reales.
+     * - Si la IA participó: 60% interno + 40% IA para anclar la confianza a datos
+     * reales.
      */
     private double combineConfidenceScores(double internalScore, double aiScore) {
         if (aiScore <= 0.0) {
@@ -145,9 +152,12 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
             context.append("Historial reciente de actividad:\n");
             for (StudentActivityLog activityLog : logs) {
                 context.append("- Materia: ").append(activityLog.getSubject())
-                       .append(" | Acción: ").append(activityLog.getActivityType())
-                       .append(" | Completado a las: ").append(activityLog.getActualCompletionTime() != null ? activityLog.getActualCompletionTime().toLocalTime() : "N/A")
-                       .append("\n");
+                        .append(" | Acción: ").append(activityLog.getActivityType())
+                        .append(" | Completado a las: ")
+                        .append(activityLog.getActualCompletionTime() != null
+                                ? activityLog.getActualCompletionTime().toLocalTime()
+                                : "N/A")
+                        .append("\n");
             }
         } else {
             context.append("No hay historial de actividad previo.\n");
@@ -160,12 +170,13 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
                 context.append("\nTareas priorizadas por el engine de planificación (ordenadas por urgencia):\n");
                 for (TaskDTO task : pendingTasks) {
                     context.append("- ").append(task.getTitle())
-                           .append(" [Materia: ").append(task.getSubjectId()).append("]")
-                           .append(" | Prioridad: ").append(task.getPriorityLevel())
-                           .append(" (score: ").append(String.format("%.1f", task.getPriorityScore())).append(")")
-                           .append(" | Deadline: ").append(task.getDeadline() != null ? task.getDeadline().toLocalDate() : "sin fecha")
-                           .append(" | Duración estimada: ").append(task.getEstimatedDurationMinutes()).append(" min")
-                           .append("\n");
+                            .append(" [Materia: ").append(task.getSubjectId()).append("]")
+                            .append(" | Prioridad: ").append(task.getPriorityLevel())
+                            .append(" (score: ").append(String.format("%.1f", task.getPriorityScore())).append(")")
+                            .append(" | Deadline: ")
+                            .append(task.getDeadline() != null ? task.getDeadline().toLocalDate() : "sin fecha")
+                            .append(" | Duración estimada: ").append(task.getEstimatedDurationMinutes()).append(" min")
+                            .append("\n");
                 }
 
                 // Métricas agregadas para la IA
@@ -176,19 +187,21 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
                         .filter(t -> "CRITICAL".equalsIgnoreCase(t.getPriorityLevel()))
                         .count();
                 long urgentCount = pendingTasks.stream()
-                        .filter(t -> t.getDeadline() != null && !t.getDeadline().toLocalDate().isAfter(java.time.LocalDate.now().plusDays(1)))
+                        .filter(t -> t.getDeadline() != null
+                                && !t.getDeadline().toLocalDate().isAfter(java.time.LocalDate.now().plusDays(1)))
                         .count();
 
                 context.append("Resumen de carga: ")
-                       .append(pendingTasks.size()).append(" tareas pendientes, ")
-                       .append(totalMinutes).append(" minutos totales estimados, ")
-                       .append(criticalCount).append(" en prioridad CRITICAL, ")
-                       .append(urgentCount).append(" con deadline en las próximas 24h.\n");
+                        .append(pendingTasks.size()).append(" tareas pendientes, ")
+                        .append(totalMinutes).append(" minutos totales estimados, ")
+                        .append(criticalCount).append(" en prioridad CRITICAL, ")
+                        .append(urgentCount).append(" con deadline en las próximas 24h.\n");
             } else {
                 context.append("No hay tareas pendientes registradas.\n");
             }
         } catch (Exception e) {
-            log.warn("No se pudieron obtener tareas del planning-service para studentId={}: {}", studentId, e.getMessage());
+            log.warn("No se pudieron obtener tareas del planning-service para studentId={}: {}", studentId,
+                    e.getMessage());
             context.append("No se pudieron obtener las tareas pendientes en este momento.\n");
         }
 
@@ -197,19 +210,12 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
 
     private void validateHistory(Long studentId) {
         Optional<StudentActivityLog> oldestLog = activityLogRepository.findFirstByStudentIdOrderByLogDateAsc(studentId);
-        
-        if (oldestLog.isEmpty() || oldestLog.get().getLogDate() == null || oldestLog.get().getLogDate().isAfter(LocalDateTime.now().minusDays(14))) {
-            throw new InsufficientHistoryException("El estudiante " + studentId + " no tiene suficientes datos. Se requieren al menos 2 semanas de actividad registrada para generar recomendaciones precisas.");
+
+        if (oldestLog.isEmpty() || oldestLog.get().getLogDate() == null
+                || oldestLog.get().getLogDate().isAfter(LocalDateTime.now().minusDays(14))) {
+            throw new InsufficientHistoryException("El estudiante " + studentId
+                    + " no tiene suficientes datos. Se requieren al menos 2 semanas de actividad registrada para generar recomendaciones precisas.");
         }
     }
 
-    private DailyRecommendationDTO mapToDto(Recommendation rec) {
-        return DailyRecommendationDTO.builder()
-                .studentId(rec.getStudentId())
-                .motivationalMessage(rec.getMotivationalMessage())
-                .studyTips(rec.getStudyTips())
-                .dateGenerated(rec.getDateGenerated())
-                .confidenceScore(rec.getConfidenceScore())
-                .build();
-    }
 }

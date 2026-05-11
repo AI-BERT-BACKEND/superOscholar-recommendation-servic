@@ -19,6 +19,8 @@
     <properties>
         <java.version>21</java.version>
 
+        <org.mapstruct.version>1.6.3</org.mapstruct.version>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <sonar.organization>ai-bert-backend</sonar.organization>
@@ -129,7 +131,7 @@
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
-            <version>1.5.5.Final</version>
+            <version>${org.mapstruct.version}</version>
         </dependency>
 
         <!-- Lombok -->
@@ -207,8 +209,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
 
                 <configuration>
+
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
 
                     <annotationProcessorPaths>
 
@@ -221,7 +227,7 @@
                         <path>
                             <groupId>org.mapstruct</groupId>
                             <artifactId>mapstruct-processor</artifactId>
-                            <version>1.5.5.Final</version>
+                            <version>${org.mapstruct.version}</version>
                         </path>
 
                     </annotationProcessorPaths>
