@@ -4,11 +4,13 @@ import com.aibert.dosw.domain.model.TaskDTO;
 import com.aibert.dosw.domain.port.in.GenerateDailyPlanUseCase;
 import com.aibert.dosw.domain.port.out.TaskServicePort;
 import com.aibert.dosw.infrastructure.adapters.in.rest.dto.DailyPlanDTO;
+import com.aibert.dosw.infrastructure.adapters.in.rest.dto.ReorganizationSuggestionDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,42 +22,67 @@ public class GenerateDailyPlanUseCaseImpl implements GenerateDailyPlanUseCase {
     private static final int MAX_DAILY_TASKS = 5;
 
     @Override
-    public DailyPlanDTO execute(Long studentId) {
+    public DailyPlanDTO execute(Long studentId, LocalDate currentDate) {
         // 1. Obtener todas las tareas priorizadas del estudiante
         List<TaskDTO> prioritizedTasks = taskServicePort.getPrioritizedTasks(studentId);
 
+        if (prioritizedTasks == null) {
+            prioritizedTasks = new ArrayList<>();
+        }
+
         // 2. Aplicar regla de negocio: Máximo 5 tareas para evitar burnout
-        List<TaskDTO> suggestedTasks = prioritizedTasks.stream()
+        List<TaskDTO> todayTasks = prioritizedTasks.stream()
                 .limit(MAX_DAILY_TASKS)
                 .collect(Collectors.toList());
 
         // 3. Filtro de Reprogramación: Clasificar tareas en reschedulableTasks
         //    (deadline > 3 días Y prioridad LOW/MEDIUM — valores reales del planning-service)
-        LocalDateTime thresholdDate = LocalDate.now().plusDays(3).atStartOfDay();
+        LocalDateTime thresholdDate = currentDate.plusDays(3).atStartOfDay();
         List<TaskDTO> reschedulableTasks = prioritizedTasks.stream()
-                .filter(task -> !suggestedTasks.contains(task)) // Las que quedaron fuera del top 5
+                .filter(task -> !todayTasks.contains(task)) // Las que quedaron fuera del top 5
                 .filter(task -> task.getDeadline() != null && task.getDeadline().isAfter(thresholdDate))
                 .filter(task -> "LOW".equalsIgnoreCase(task.getPriorityLevel()) || "MEDIUM".equalsIgnoreCase(task.getPriorityLevel()))
                 .collect(Collectors.toList());
 
         // 4. Calcular métricas auxiliares
-        int totalMinutes = suggestedTasks.stream()
+        int totalMinutes = todayTasks.stream()
                 .mapToInt(TaskDTO::getEstimatedDurationMinutes)
                 .sum();
 
         // 5. Alerta Urgente: true si alguna tarea vence en menos de 24h (hoy o mañana)
-        LocalDateTime tomorrowEnd = LocalDate.now().plusDays(1).atTime(23, 59, 59);
+        LocalDateTime tomorrowEnd = currentDate.plusDays(1).atTime(23, 59, 59);
         boolean isUrgent = prioritizedTasks.stream()
                 .anyMatch(task -> task.getDeadline() != null && !task.getDeadline().isAfter(tomorrowEnd));
 
-        // 6. Retornar el plan estructurado
+        // 6. RN-04: Sugerencias de reorganización solo si hay tareas reprogramables
+        List<ReorganizationSuggestionDTO> suggestions = new ArrayList<>();
+        if (!reschedulableTasks.isEmpty()) {
+            for (TaskDTO task : reschedulableTasks) {
+                suggestions.add(ReorganizationSuggestionDTO.builder()
+                        .taskId(task.getTaskId())
+                        .taskTitle(task.getTitle())
+                        // Sugerir un día antes del deadline original
+                        .suggestedDay(task.getDeadline().minusDays(1).toLocalDate().toString())
+                        .justification("Esta tarea tiene baja urgencia y prioridad, puedes abordarla más adelante para reducir tu carga de hoy.")
+                        .build());
+            }
+        }
+
+        // 7. Determinar el mensaje
+        String message = todayTasks.isEmpty() 
+            ? "No tienes tareas pendientes para hoy. ¡Buen trabajo!" 
+            : "Aquí está tu plan para hoy";
+
+        // 8. Retornar el plan estructurado
         return DailyPlanDTO.builder()
                 .studentId(studentId)
-                .planDate(LocalDate.now())
-                .suggestedTasks(suggestedTasks)
+                .planDate(currentDate)
+                .todayTasks(todayTasks)
                 .reschedulableTasks(reschedulableTasks)
+                .reorganizationSuggestions(suggestions)
                 .totalEstimatedMinutes(totalMinutes)
                 .urgentAlert(isUrgent)
+                .message(message)
                 .build();
     }
 }

@@ -44,9 +44,9 @@ public class GeminiAdapter implements GenerativeAiPort {
     @Override
     @CircuitBreaker(name = "geminiAI", fallbackMethod = "fallbackRecommendation")
     @Retry(name = "geminiAI", fallbackMethod = "fallbackRecommendation")
-    public Recommendation generateRecommendation(Long studentId, String enrichedContext) {
-        log.info("Generando recomendación con modelo '{}' para studentId={}", geminiModel, studentId);
-        String prompt = buildPrompt(enrichedContext);
+    public Recommendation generateRecommendation(Long studentId, String enrichedContext, String requestType) {
+        log.info("Generando recomendación ({}) con modelo '{}' para studentId={}", requestType, geminiModel, studentId);
+        String prompt = buildPrompt(enrichedContext, requestType);
         
         GeminiRequest request = GeminiRequest.builder()
                 .contents(List.of(
@@ -59,39 +59,48 @@ public class GeminiAdapter implements GenerativeAiPort {
         GeminiResponse response = externalAIClient.generateContent(geminiModel, geminiApiKey, request);
         String generatedText = extractText(response);
         
-        return parseAIResponse(studentId, generatedText);
+        return parseAIResponse(studentId, generatedText, requestType);
     }
 
-    /**
-     * Fallback cuando la IA falla (timeout, error HTTP, circuit breaker abierto, etc.).
-     * Retorna un mensaje controlado sin depender de la IA.
-     */
     @SuppressWarnings("unused")
-    private Recommendation fallbackRecommendation(Long studentId, String enrichedContext, Throwable throwable) {
+    private Recommendation fallbackRecommendation(Long studentId, String enrichedContext, String requestType, Throwable throwable) {
         log.warn("Fallback activado para studentId={} debido a: {}", studentId, throwable.getMessage());
         return Recommendation.builder()
                 .studentId(studentId)
                 .confidenceScore(0.0)
+                .recommendationType(requestType)
                 .motivationalMessage("Nuestro asistente de IA no está disponible en este momento. " +
                         "Mientras tanto, recuerda revisar tus tareas pendientes y organizar tu tiempo. ¡Tú puedes!")
-                .studyTips(List.of(
-                        "Revisa tus notas más recientes",
-                        "Prioriza las tareas con fecha de entrega más cercana",
-                        "Toma descansos de 5 minutos cada 25 minutos de estudio (Técnica Pomodoro)"
+                .recommendations(List.of(
+                        Recommendation.RecommendationItem.builder()
+                                .title("Revisión General")
+                                .description("Revisa tus notas más recientes y prioriza tareas cercanas.")
+                                .type("GENERAL")
+                                .itemScore(0.5)
+                                .build()
                 ))
                 .dateGenerated(LocalDate.now())
                 .build();
     }
 
-    private String buildPrompt(String enrichedContext) {
+    private String buildPrompt(String enrichedContext, String requestType) {
         return "Eres AI.BERT, un tutor inteligente y compasivo. " +
                "Analiza el siguiente contexto del estudiante:\n\n" +
                enrichedContext + "\n\n" +
-               "Debes devolver tu respuesta ESTRICTAMENTE en el siguiente formato JSON puro (sin bloques de código markdown, solo el JSON):\n" +
+               "El estudiante ha solicitado una recomendación de tipo: " + requestType + ". " +
+               "Debes devolver tu respuesta ESTRICTAMENTE en el siguiente formato JSON puro (sin bloques de código markdown, solo el JSON). " +
+               "Debes generar entre 1 y 5 recomendaciones en el array.\n" +
                "{\n" +
                "  \"confidenceScore\": 0.95,\n" +
                "  \"motivationalMessage\": \"Tu mensaje motivacional aquí basado en el contexto.\",\n" +
-               "  \"studyTips\": [\"Tip 1\", \"Tip 2\", \"Tip 3\"]\n" +
+               "  \"recommendations\": [\n" +
+               "    {\n" +
+               "      \"title\": \"Título corto y accionable\",\n" +
+               "      \"description\": \"Justificación detallada basada en el contexto\",\n" +
+               "      \"type\": \"" + requestType + "\",\n" +
+               "      \"itemScore\": 0.9\n" +
+               "    }\n" +
+               "  ]\n" +
                "}";
     }
 
@@ -102,37 +111,49 @@ public class GeminiAdapter implements GenerativeAiPort {
         return "{}";
     }
 
-    private Recommendation parseAIResponse(Long studentId, String jsonText) {
+    private Recommendation parseAIResponse(Long studentId, String jsonText, String requestType) {
         try {
-            // Limpiar si la IA devuelve bloques markdown ```json ... ```
             String cleanJson = jsonText.replace("```json", "").replace("```", "").trim();
             JsonNode root = objectMapper.readTree(cleanJson);
             
             Double confidence = root.has("confidenceScore") ? root.get("confidenceScore").asDouble() : 0.0;
             String message = root.has("motivationalMessage") ? root.get("motivationalMessage").asText() : "¡Tú puedes!";
             
-            List<String> tips = new ArrayList<>();
-            if (root.has("studyTips") && root.get("studyTips").isArray()) {
-                for (JsonNode tip : root.get("studyTips")) {
-                    tips.add(tip.asText());
+            List<Recommendation.RecommendationItem> items = new ArrayList<>();
+            if (root.has("recommendations") && root.get("recommendations").isArray()) {
+                for (JsonNode recNode : root.get("recommendations")) {
+                    items.add(Recommendation.RecommendationItem.builder()
+                            .title(recNode.has("title") ? recNode.get("title").asText() : "Recomendación")
+                            .description(recNode.has("description") ? recNode.get("description").asText() : "")
+                            .type(recNode.has("type") ? recNode.get("type").asText() : requestType)
+                            .itemScore(recNode.has("itemScore") ? recNode.get("itemScore").asDouble() : confidence)
+                            .build());
                 }
             }
 
             return Recommendation.builder()
                     .studentId(studentId)
                     .confidenceScore(confidence)
+                    .recommendationType(requestType)
                     .motivationalMessage(message)
-                    .studyTips(tips)
+                    .recommendations(items)
                     .dateGenerated(LocalDate.now())
                     .build();
         } catch (Exception e) {
             log.error("Error parseando respuesta de Gemini para studentId={}: {}", studentId, e.getMessage());
-            // Fallback si la IA no devuelve un JSON válido
             return Recommendation.builder()
                     .studentId(studentId)
                     .confidenceScore(0.1)
+                    .recommendationType(requestType)
                     .motivationalMessage("El servicio está experimentando problemas técnicos, pero no te rindas.")
-                    .studyTips(List.of("Toma un descanso", "Revisa tus notas"))
+                    .recommendations(List.of(
+                            Recommendation.RecommendationItem.builder()
+                                    .title("Mantén la calma")
+                                    .description("Toma un descanso y revisa tus notas.")
+                                    .type("GENERAL")
+                                    .itemScore(0.1)
+                                    .build()
+                    ))
                     .dateGenerated(LocalDate.now())
                     .build();
         }

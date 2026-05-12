@@ -38,22 +38,26 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
     private final RecommendationMapper recommendationMapper;
 
     @Override
-    public DailyRecommendationDTO execute(Long studentId) {
+    public DailyRecommendationDTO execute(Long studentId, String requestType) {
         validateHistory(studentId);
 
+        // Normalize requestType and handle FA-02
+        String effectiveType = normalizeAndCheckData(studentId, requestType);
+
         Optional<Recommendation> existing = repository.findByStudentIdAndDateGenerated(studentId, LocalDate.now());
-        if (existing.isPresent()) {
-            return recommendationMapper.toDailyRecommendationDto(existing.get());
+        if (existing.isPresent() && effectiveType.equals(existing.get().getRecommendationType())) {
+            DailyRecommendationDTO dto = recommendationMapper.toDailyRecommendationDto(existing.get());
+            dto.setMessage("Aquí tienes tus recomendaciones");
+            return dto;
         }
 
         // 1. Armar el Contexto Orquestando diferentes fuentes
         String enrichedContext = buildEnrichedContext(studentId);
 
         // 2. Llamar a la API externa (protegida con Circuit Breaker + Retry)
-        Recommendation newRecommendation = generativeAiPort.generateRecommendation(studentId, enrichedContext);
+        Recommendation newRecommendation = generativeAiPort.generateRecommendation(studentId, enrichedContext, effectiveType);
 
         // 3. Calcular confidenceScore interno basado en cantidad y calidad de datos
-        // (R18-T5)
         double internalScore = calculateInternalConfidenceScore(studentId);
         double aiScore = newRecommendation.getConfidenceScore() != null ? newRecommendation.getConfidenceScore() : 0.0;
         double combinedScore = combineConfidenceScores(internalScore, aiScore);
@@ -63,21 +67,35 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
 
         // 4. Guardar y retornar
         Recommendation saved = repository.save(newRecommendation);
-        return recommendationMapper.toDailyRecommendationDto(saved);
+        DailyRecommendationDTO dto = recommendationMapper.toDailyRecommendationDto(saved);
+        dto.setMessage("Aquí tienes tus recomendaciones");
+        return dto;
     }
 
-    /**
-     * R18-T5: Calcula el confidenceScore basado en la cantidad y calidad de datos
-     * del estudiante.
-     * 
-     * Factores considerados:
-     * - Cantidad de registros de actividad (30% del peso)
-     * - Calidad de los datos: promedio de focusScore (25% del peso)
-     * - Antigüedad del historial en semanas (25% del peso)
-     * - Diversidad de materias estudiadas (20% del peso)
-     * 
-     * @return score entre 0.0 y 1.0
-     */
+    private String normalizeAndCheckData(Long studentId, String requestType) {
+        if (requestType == null || requestType.isBlank()) {
+            return "GENERAL";
+        }
+        String type = requestType.toUpperCase();
+        if (!type.equals("PRODUCTIVIDAD") && !type.equals("CARGA") && !type.equals("GENERAL")) {
+            return "GENERAL";
+        }
+
+        // FA-02: Solicita tipo específico sin datos suficientes -> GENERAL
+        if (type.equals("CARGA")) {
+            try {
+                List<TaskDTO> tasks = taskServicePort.getPrioritizedTasks(studentId);
+                if (tasks == null || tasks.isEmpty()) {
+                    log.info("FA-02: No hay tareas para recomendación de CARGA. Fallback a GENERAL.");
+                    return "GENERAL";
+                }
+            } catch (Exception e) {
+                return "GENERAL";
+            }
+        }
+        return type;
+    }
+
     private double calculateInternalConfidenceScore(Long studentId) {
         List<StudentActivityLog> logs = activityLogRepository.findByStudentId(studentId);
 
@@ -85,29 +103,21 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
             return 0.0;
         }
 
-        // Factor 1: Cantidad de datos (más logs = más confianza, se satura en 50
-        // registros)
         double dataQuantityScore = Math.min(1.0, logs.size() / 50.0);
-
-        // Factor 2: Calidad de datos (promedio de focusScore normalizado a 0-1)
         double avgFocusScore = logs.stream()
                 .filter(l -> l.getFocusScore() != null && l.getFocusScore() > 0)
                 .mapToInt(StudentActivityLog::getFocusScore)
                 .average()
                 .orElse(50.0) / 100.0;
 
-        // Factor 3: Antigüedad del historial (más semanas = más confianza, se satura en
-        // 8 semanas)
         LocalDateTime oldestDate = logs.stream()
                 .map(StudentActivityLog::getLogDate)
                 .filter(Objects::nonNull)
                 .min(LocalDateTime::compareTo)
                 .orElse(LocalDateTime.now());
         long daysOfHistory = ChronoUnit.DAYS.between(oldestDate, LocalDateTime.now());
-        double historyScore = Math.min(1.0, daysOfHistory / 56.0); // 56 días = 8 semanas
+        double historyScore = Math.min(1.0, daysOfHistory / 56.0); 
 
-        // Factor 4: Diversidad de materias (más materias = mejor panorama, se satura en
-        // 5)
         long uniqueSubjects = logs.stream()
                 .map(StudentActivityLog::getSubject)
                 .filter(Objects::nonNull)
@@ -115,7 +125,6 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
                 .count();
         double diversityScore = Math.min(1.0, uniqueSubjects / 5.0);
 
-        // Ponderación final
         double internalScore = (dataQuantityScore * 0.30)
                 + (avgFocusScore * 0.25)
                 + (historyScore * 0.25)
@@ -124,15 +133,8 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         return Math.round(internalScore * 100.0) / 100.0;
     }
 
-    /**
-     * Combina el score interno (basado en datos) con el score de la IA.
-     * - Si la IA no participó (aiScore == 0.0): usa solo el score interno.
-     * - Si la IA participó: 60% interno + 40% IA para anclar la confianza a datos
-     * reales.
-     */
     private double combineConfidenceScores(double internalScore, double aiScore) {
         if (aiScore <= 0.0) {
-            // Fallback: solo score interno (la IA no generó nada útil)
             return internalScore;
         }
         double combined = (internalScore * 0.6) + (aiScore * 0.4);
@@ -142,11 +144,9 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
     private String buildEnrichedContext(Long studentId) {
         StringBuilder context = new StringBuilder();
 
-        // Estilo de aprendizaje
         String learningStyle = profileServicePort.getLearningStyle(studentId);
         context.append("Estilo de aprendizaje del estudiante: ").append(learningStyle).append(".\n");
 
-        // Historial de actividad (Patrones)
         List<StudentActivityLog> logs = activityLogRepository.findByStudentId(studentId);
         if (!logs.isEmpty()) {
             context.append("Historial reciente de actividad:\n");
@@ -163,7 +163,6 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
             context.append("No hay historial de actividad previo.\n");
         }
 
-        // Tareas pendientes reales del planning-service (via Feign / Adapter)
         try {
             List<TaskDTO> pendingTasks = taskServicePort.getPrioritizedTasks(studentId);
             if (pendingTasks != null && !pendingTasks.isEmpty()) {
@@ -179,7 +178,6 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
                             .append("\n");
                 }
 
-                // Métricas agregadas para la IA
                 int totalMinutes = pendingTasks.stream()
                         .mapToInt(TaskDTO::getEstimatedDurationMinutes)
                         .sum();
@@ -200,8 +198,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
                 context.append("No hay tareas pendientes registradas.\n");
             }
         } catch (Exception e) {
-            log.warn("No se pudieron obtener tareas del planning-service para studentId={}: {}", studentId,
-                    e.getMessage());
+            log.warn("No se pudieron obtener tareas del planning-service para studentId={}: {}", studentId, e.getMessage());
             context.append("No se pudieron obtener las tareas pendientes en este momento.\n");
         }
 
@@ -213,8 +210,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
 
         if (oldestLog.isEmpty() || oldestLog.get().getLogDate() == null
                 || oldestLog.get().getLogDate().isAfter(LocalDateTime.now().minusDays(14))) {
-            throw new InsufficientHistoryException("El estudiante " + studentId
-                    + " no tiene suficientes datos. Se requieren al menos 2 semanas de actividad registrada para generar recomendaciones precisas.");
+            throw new InsufficientHistoryException("Aún no hay suficientes datos para generar recomendaciones. Continúa usando la aplicación.");
         }
     }
 

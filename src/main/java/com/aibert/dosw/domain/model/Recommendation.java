@@ -20,8 +20,22 @@ public class Recommendation {
     private String id;
     private Long studentId;
     private String motivationalMessage;
-    private List<String> studyTips;
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RecommendationItem {
+        private String title;
+        private String description;
+        private String type; // PRODUCTIVIDAD, CARGA, GENERAL
+        private Double itemScore;
+    }
+    
+    private List<RecommendationItem> recommendations; // Array de recomendaciones (1-5)
+    
     private LocalDate dateGenerated;
     private String userFeedback; // "LIKE", "DISLIKE", null
-    private Double confidenceScore; // Nivel de confianza de la IA en su recomendación
+    private Double confidenceScore; // Nivel de confianza de la IA en su recomendación global
+    private String recommendationType; // R18: PRODUCTIVIDAD, CARGA, GENERAL
 }

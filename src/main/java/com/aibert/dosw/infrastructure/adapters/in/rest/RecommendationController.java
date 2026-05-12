@@ -7,8 +7,11 @@ import com.aibert.dosw.infrastructure.adapters.in.rest.dto.DailyPlanDTO;
 import com.aibert.dosw.infrastructure.adapters.in.rest.dto.DailyRecommendationDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/recommendations")
@@ -25,15 +28,19 @@ public class RecommendationController {
     @PostMapping
     public ResponseEntity<DailyRecommendationDTO> generateRecommendations(
             @Valid @RequestBody RecommendationRequest request) {
-        return ResponseEntity.ok(generateRecommendationUseCase.execute(request.getStudentId()));
+        return ResponseEntity.ok(generateRecommendationUseCase.execute(request.getStudentId(), request.getRequestType()));
     }
 
     /**
      * R19 — GET /recommendations/daily/{studentId}
-     * Genera sugerencias diarias: todayTasks y reschedulableTasks.
+     * Genera sugerencias diarias: todayTasks, reschedulableTasks y reorganizationSuggestions.
      */
     @GetMapping("/daily/{studentId}")
-    public ResponseEntity<DailyPlanDTO> getDailyPlan(@PathVariable Long studentId) {
-        return ResponseEntity.ok(generateDailyPlanUseCase.execute(studentId));
+    public ResponseEntity<DailyPlanDTO> getDailyPlan(
+            @PathVariable Long studentId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentDate) {
+        
+        LocalDate effectiveDate = (currentDate != null) ? currentDate : LocalDate.now();
+        return ResponseEntity.ok(generateDailyPlanUseCase.execute(studentId, effectiveDate));
     }
 }
