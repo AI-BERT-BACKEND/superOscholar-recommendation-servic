@@ -36,17 +36,21 @@ public class GenerateDailyPlanUseCaseImpl implements GenerateDailyPlanUseCase {
                 .collect(Collectors.toList());
 
         // 3. Filtro de Reprogramación: Clasificar tareas en reschedulableTasks
-        //    (deadline > 3 días Y prioridad LOW/MEDIUM — valores reales del planning-service)
+        // (deadline > 3 días Y prioridad LOW/MEDIUM — valores reales del
+        // planning-service)
         LocalDateTime thresholdDate = currentDate.plusDays(3).atStartOfDay();
         List<TaskDTO> reschedulableTasks = prioritizedTasks.stream()
                 .filter(task -> !todayTasks.contains(task)) // Las que quedaron fuera del top 5
                 .filter(task -> task.getDeadline() != null && task.getDeadline().isAfter(thresholdDate))
-                .filter(task -> "LOW".equalsIgnoreCase(task.getPriorityLevel()) || "MEDIUM".equalsIgnoreCase(task.getPriorityLevel()))
+                .filter(task -> "LOW".equalsIgnoreCase(task.getPriorityLevel())
+                        || "MEDIUM".equalsIgnoreCase(task.getPriorityLevel()))
                 .collect(Collectors.toList());
 
         // 4. Calcular métricas auxiliares
         int totalMinutes = todayTasks.stream()
-                .mapToInt(TaskDTO::getEstimatedDurationMinutes)
+                .mapToInt(task -> task.getEstimatedDurationMinutes() != null
+                        ? task.getEstimatedDurationMinutes()
+                        : 0)
                 .sum();
 
         // 5. Alerta Urgente: true si alguna tarea vence en menos de 24h (hoy o mañana)
@@ -63,15 +67,16 @@ public class GenerateDailyPlanUseCaseImpl implements GenerateDailyPlanUseCase {
                         .taskTitle(task.getTitle())
                         // Sugerir un día antes del deadline original
                         .suggestedDay(task.getDeadline().minusDays(1).toLocalDate().toString())
-                        .justification("Esta tarea tiene baja urgencia y prioridad, puedes abordarla más adelante para reducir tu carga de hoy.")
+                        .justification(
+                                "Esta tarea tiene baja urgencia y prioridad, puedes abordarla más adelante para reducir tu carga de hoy.")
                         .build());
             }
         }
 
         // 7. Determinar el mensaje
-        String message = todayTasks.isEmpty() 
-            ? "No tienes tareas pendientes para hoy. ¡Buen trabajo!" 
-            : "Aquí está tu plan para hoy";
+        String message = todayTasks.isEmpty()
+                ? "No tienes tareas pendientes para hoy. ¡Buen trabajo!"
+                : "Aquí está tu plan para hoy";
 
         // 8. Retornar el plan estructurado
         return DailyPlanDTO.builder()

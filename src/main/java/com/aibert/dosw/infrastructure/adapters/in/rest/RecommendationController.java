@@ -39,7 +39,6 @@ public class RecommendationController {
     public ResponseEntity<DailyPlanDTO> getDailyPlan(
             @PathVariable Long studentId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentDate) {
-        
         LocalDate effectiveDate = (currentDate != null) ? currentDate : LocalDate.now();
         return ResponseEntity.ok(generateDailyPlanUseCase.execute(studentId, effectiveDate));
     }

@@ -55,7 +55,8 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         String enrichedContext = buildEnrichedContext(studentId);
 
         // 2. Llamar a la API externa (protegida con Circuit Breaker + Retry)
-        Recommendation newRecommendation = generativeAiPort.generateRecommendation(studentId, enrichedContext, effectiveType);
+        Recommendation newRecommendation = generativeAiPort.generateRecommendation(studentId, enrichedContext,
+                effectiveType);
 
         // 3. Calcular confidenceScore interno basado en cantidad y calidad de datos
         double internalScore = calculateInternalConfidenceScore(studentId);
@@ -116,7 +117,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
                 .min(LocalDateTime::compareTo)
                 .orElse(LocalDateTime.now());
         long daysOfHistory = ChronoUnit.DAYS.between(oldestDate, LocalDateTime.now());
-        double historyScore = Math.min(1.0, daysOfHistory / 56.0); 
+        double historyScore = Math.min(1.0, daysOfHistory / 56.0);
 
         long uniqueSubjects = logs.stream()
                 .map(StudentActivityLog::getSubject)
@@ -168,18 +169,26 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
             if (pendingTasks != null && !pendingTasks.isEmpty()) {
                 context.append("\nTareas priorizadas por el engine de planificación (ordenadas por urgencia):\n");
                 for (TaskDTO task : pendingTasks) {
-                    context.append("- ").append(task.getTitle())
+                    String title = task.getTitle() != null ? task.getTitle() : "Tarea";
+                    Double priorityScore = task.getPriorityScore() != null ? task.getPriorityScore() : 0.0;
+                    Integer estimatedMinutes = task.getEstimatedDurationMinutes() != null
+                            ? task.getEstimatedDurationMinutes()
+                            : 0;
+
+                    context.append("- ").append(title)
                             .append(" [Materia: ").append(task.getSubjectId()).append("]")
                             .append(" | Prioridad: ").append(task.getPriorityLevel())
-                            .append(" (score: ").append(String.format("%.1f", task.getPriorityScore())).append(")")
+                            .append(" (score: ").append(String.format("%.1f", priorityScore)).append(")")
                             .append(" | Deadline: ")
                             .append(task.getDeadline() != null ? task.getDeadline().toLocalDate() : "sin fecha")
-                            .append(" | Duración estimada: ").append(task.getEstimatedDurationMinutes()).append(" min")
+                            .append(" | Duración estimada: ").append(estimatedMinutes).append(" min")
                             .append("\n");
                 }
 
                 int totalMinutes = pendingTasks.stream()
-                        .mapToInt(TaskDTO::getEstimatedDurationMinutes)
+                        .mapToInt(task -> task.getEstimatedDurationMinutes() != null
+                                ? task.getEstimatedDurationMinutes()
+                                : 0)
                         .sum();
                 long criticalCount = pendingTasks.stream()
                         .filter(t -> "CRITICAL".equalsIgnoreCase(t.getPriorityLevel()))
@@ -198,7 +207,8 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
                 context.append("No hay tareas pendientes registradas.\n");
             }
         } catch (Exception e) {
-            log.warn("No se pudieron obtener tareas del planning-service para studentId={}: {}", studentId, e.getMessage());
+            log.warn("No se pudieron obtener tareas del planning-service para studentId={}: {}", studentId,
+                    e.getMessage());
             context.append("No se pudieron obtener las tareas pendientes en este momento.\n");
         }
 
@@ -210,7 +220,8 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
 
         if (oldestLog.isEmpty() || oldestLog.get().getLogDate() == null
                 || oldestLog.get().getLogDate().isAfter(LocalDateTime.now().minusDays(14))) {
-            throw new InsufficientHistoryException("Aún no hay suficientes datos para generar recomendaciones. Continúa usando la aplicación.");
+            throw new InsufficientHistoryException(
+                    "Aún no hay suficientes datos para generar recomendaciones. Continúa usando la aplicación.");
         }
     }
 
