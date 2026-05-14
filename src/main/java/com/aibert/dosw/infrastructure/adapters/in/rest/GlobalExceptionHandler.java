@@ -1,6 +1,7 @@
 package com.aibert.dosw.infrastructure.adapters.in.rest;
 
 import com.aibert.dosw.domain.exception.InsufficientHistoryException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -76,18 +77,28 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<Map<String, Object>> handleDataAccess(DataAccessException ex) {
+    public ResponseEntity<Map<String, Object>> handleDataAccess(DataAccessException ex, HttpServletRequest request) {
         String errorId = UUID.randomUUID().toString();
-        log.error("Database errorId={}", errorId, ex);
+        log.error("Database errorId={} method={} path={} query={}",
+                errorId,
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getQueryString(),
+                ex);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(buildBody(HttpStatus.SERVICE_UNAVAILABLE,
                         "Error de acceso a datos. Intenta más tarde.", errorId));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
+    public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex, HttpServletRequest request) {
         String errorId = UUID.randomUUID().toString();
-        log.error("Unhandled errorId={}", errorId, ex);
+        log.error("Unhandled errorId={} method={} path={} query={}",
+                errorId,
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getQueryString(),
+                ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(buildBody(HttpStatus.INTERNAL_SERVER_ERROR,
                         "Ocurrió un error inesperado. Por favor, intente más tarde.", errorId));
