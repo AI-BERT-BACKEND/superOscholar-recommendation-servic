@@ -1,5 +1,6 @@
 package com.aibert.dosw.infrastructure.adapters.out.api.groq.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 import java.util.List;
@@ -13,7 +14,8 @@ import java.util.List;
 public class GroqRequest {
     private String model;
     private List<Message> messages;
-    private Integer max_tokens;
+    @JsonProperty("max_tokens")
+    private Integer maxTokens;
     private Double temperature;
 
     @Data
