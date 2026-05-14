@@ -8,8 +8,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -86,6 +88,47 @@ class GroqAdapterTest {
         assertEquals(77L, result.getStudentId());
         assertEquals(0.0, result.getConfidenceScore());
         assertTrue(result.getRecommendations().isEmpty());
+    }
+
+    @Test
+    void generateRecommendation_withNullMessageContent_returnsDefaultsFromParser() {
+        GroqAIClient groqAIClient = mock(GroqAIClient.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper());
+
+        GroqResponse.Message message = new GroqResponse.Message();
+        message.setRole("assistant");
+        message.setContent(null);
+
+        GroqResponse.Choice choice = new GroqResponse.Choice();
+        choice.setMessage(message);
+
+        GroqResponse response = new GroqResponse();
+        response.setChoices(List.of(choice));
+
+        when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class))).thenReturn(response);
+
+        Recommendation result = adapter.generateRecommendation(91L, "context", "GENERAL");
+        assertEquals(0.0, result.getConfidenceScore());
+        assertTrue(result.getRecommendations().isEmpty());
+    }
+
+    @Test
+    void fallbackRecommendation_canBeInvokedAndReturnsGracefulRecommendation() throws Exception {
+        GroqAIClient groqAIClient = mock(GroqAIClient.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper());
+
+        Method method = GroqAdapter.class.getDeclaredMethod(
+                "fallbackRecommendation", Long.class, String.class, String.class, Throwable.class);
+        method.setAccessible(true);
+
+        Recommendation fallback = (Recommendation) method.invoke(
+                adapter, 22L, "ctx", "GENERAL", new RuntimeException("boom"));
+
+        assertEquals(22L, fallback.getStudentId());
+        assertEquals(0.0, fallback.getConfidenceScore());
+        assertEquals("GENERAL", fallback.getRecommendationType());
+        assertEquals(1, fallback.getRecommendations().size());
+        assertDoesNotThrow(fallback::toString);
     }
 
     private GroqResponse responseWithContent(String content) {
