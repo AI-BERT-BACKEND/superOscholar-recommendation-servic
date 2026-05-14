@@ -26,8 +26,8 @@ class GroqResponseTest {
 
         assertEquals(message1, message2);
         assertNotEquals(message1, message3);
-        assertNotEquals(message1, null);
-        assertNotEquals(message1, new Object());
+        assertNotEquals(null, message1);
+        assertNotEquals(new Object(), message1);
         assertEquals(message1.hashCode(), message2.hashCode());
         assertNotNull(message1.toString());
 
@@ -40,8 +40,8 @@ class GroqResponseTest {
 
         assertEquals(choice1, choice2);
         assertNotEquals(choice1, choice3);
-        assertNotEquals(choice1, null);
-        assertNotEquals(choice1, new Object());
+        assertNotEquals(null, choice1);
+        assertNotEquals(new Object(), choice1);
         assertEquals(choice1.hashCode(), choice2.hashCode());
         assertNotNull(choice1.toString());
 
@@ -54,8 +54,8 @@ class GroqResponseTest {
 
         assertEquals(response1, response2);
         assertNotEquals(response1, response3);
-        assertNotEquals(response1, null);
-        assertNotEquals(response1, new Object());
+        assertNotEquals(null, response1);
+        assertNotEquals(new Object(), response1);
         assertEquals(response1.hashCode(), response2.hashCode());
         assertEquals(1, response1.getChoices().size());
         assertNotNull(response1.toString());

@@ -37,8 +37,8 @@ class GroqRequestTest {
 
         assertEquals(message1, message2);
         assertNotEquals(message1, message3);
-        assertNotEquals(message1, null);
-        assertNotEquals(message1, new Object());
+        assertNotEquals(null, message1);
+        assertNotEquals(new Object(), message1);
         assertEquals(message1.hashCode(), message2.hashCode());
         assertNotNull(message1.toString());
 
@@ -63,8 +63,8 @@ class GroqRequestTest {
 
         assertEquals(request1, request2);
         assertNotEquals(request1, request3);
-        assertNotEquals(request1, null);
-        assertNotEquals(request1, new Object());
+        assertNotEquals(null, request1);
+        assertNotEquals(new Object(), request1);
         assertEquals(request1.hashCode(), request2.hashCode());
         assertEquals("m1", request1.getModel());
         assertEquals(120, request1.getMaxTokens());
