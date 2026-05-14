@@ -27,11 +27,16 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8086:8080"
+      - "8086:8086"
 
     environment:
+      SERVER_PORT: ${SERVER_PORT}
       MONGO_URI: ${MONGO_URI}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_AUTOCONFIGURE_EXCLUDE: ${SPRING_AUTOCONFIGURE_EXCLUDE}
+      AI_PROVIDER: ${AI_PROVIDER}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL}
       JWT_SECRET: ${JWT_SECRET}
 
     depends_on:

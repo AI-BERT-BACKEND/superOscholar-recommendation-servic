@@ -1,5 +1,5 @@
 server:
-  port: 8086
+  port: ${SERVER_PORT:8086}
 
 
 
@@ -16,7 +16,7 @@ jwt:
   secret: ${JWT_SECRET}
 
 # --- Selector de proveedor de IA ---
-# Opciones: "groq" o "gemini"
+# Valor esperado: "groq"
 ai:
   provider: "${AI_PROVIDER:groq}"
 
@@ -42,10 +42,6 @@ feign:
       default:
         connectTimeout: 5000
         readTimeout: 15000
-
-      externalAiClient:
-        connectTimeout: 5000
-        readTimeout: 20000
 
       groqAiClient:
         connectTimeout: 5000
