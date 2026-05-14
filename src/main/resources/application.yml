@@ -25,17 +25,10 @@ groq:
     key: "${GROQ_API_KEY:}"
     model: "${GROQ_MODEL:llama-3.3-70b-versatile}"
 
-# --- Configuración Gemini ---
-gemini:
-  api:
-    base-url: "https://generativelanguage.googleapis.com/v1beta"
-    key: "${GEMINI_API_KEY:}"
-    model: "${GEMINI_MODEL:gemini-2.0-flash}"
-
 # --- URLs de microservicios internos ---
 services:
   planning:
-    url: "${PLANNING_SERVICE_URL:http://localhost:8083}"
+    url: "${PLANNING_SERVICE_URL:http://localhost:8087}"
 
   profile:
     url: "${PROFILE_SERVICE_URL:http://localhost:8081}"
@@ -68,7 +61,7 @@ feign:
 resilience4j:
   circuitbreaker:
     instances:
-      geminiAI:
+      groqAI:
         registerHealthIndicator: true
         slidingWindowSize: 10
         failureRateThreshold: 50
@@ -79,7 +72,7 @@ resilience4j:
 
   retry:
     instances:
-      geminiAI:
+      groqAI:
         maxAttempts: 3
         waitDuration: 2s
         retryExceptions:
@@ -89,7 +82,7 @@ resilience4j:
 
   timelimiter:
     instances:
-      geminiAI:
+      groqAI:
         timeoutDuration: 20s
 
 management:
