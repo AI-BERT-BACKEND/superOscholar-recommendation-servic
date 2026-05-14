@@ -1,4 +1,4 @@
-package com.aibert.dosw.infrastructure.adapters.out.api.gemini.dto;
+package com.aibert.dosw.infrastructure.adapters.out.api.groq.dto;
 
 import lombok.Builder;
 import lombok.Data;
@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * DTO compatible con el formato de la API de Groq (OpenAI-compatible).
- * Usado como alternativa cuando Gemini no está disponible.
+ * Usado para solicitudes al proveedor Groq.
  */
 @Data
 @Builder

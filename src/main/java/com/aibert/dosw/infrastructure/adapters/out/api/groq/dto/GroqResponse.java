@@ -1,4 +1,4 @@
-package com.aibert.dosw.infrastructure.adapters.out.api.gemini.dto;
+package com.aibert.dosw.infrastructure.adapters.out.api.groq.dto;
 
 import lombok.Data;
 import java.util.List;

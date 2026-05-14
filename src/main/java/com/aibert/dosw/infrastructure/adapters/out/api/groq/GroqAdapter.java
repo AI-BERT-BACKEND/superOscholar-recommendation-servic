@@ -1,9 +1,9 @@
-package com.aibert.dosw.infrastructure.adapters.out.api.gemini;
+package com.aibert.dosw.infrastructure.adapters.out.api.groq;
 
 import com.aibert.dosw.domain.model.Recommendation;
 import com.aibert.dosw.domain.port.out.GenerativeAiPort;
-import com.aibert.dosw.infrastructure.adapters.out.api.gemini.dto.GroqRequest;
-import com.aibert.dosw.infrastructure.adapters.out.api.gemini.dto.GroqResponse;
+import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequest;
+import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponse;
 import com.aibert.dosw.infrastructure.adapters.out.feign.GroqAIClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,8 +44,8 @@ public class GroqAdapter implements GenerativeAiPort {
     }
 
     @Override
-    @CircuitBreaker(name = "geminiAI", fallbackMethod = "fallbackRecommendation")
-    @Retry(name = "geminiAI", fallbackMethod = "fallbackRecommendation")
+    @CircuitBreaker(name = "groqAI", fallbackMethod = "fallbackRecommendation")
+    @Retry(name = "groqAI", fallbackMethod = "fallbackRecommendation")
     public Recommendation generateRecommendation(Long studentId, String enrichedContext, String requestType) {
         log.info("Generando recomendación ({}) con Groq modelo '{}' para studentId={}", requestType, groqModel, studentId);
 

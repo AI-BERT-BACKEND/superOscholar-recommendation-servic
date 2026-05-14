@@ -1,7 +1,7 @@
 package com.aibert.dosw.infrastructure.adapters.out.feign;
 
-import com.aibert.dosw.infrastructure.adapters.out.api.gemini.dto.GroqRequest;
-import com.aibert.dosw.infrastructure.adapters.out.api.gemini.dto.GroqResponse;
+import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequest;
+import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
