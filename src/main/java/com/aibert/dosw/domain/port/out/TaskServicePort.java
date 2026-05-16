@@ -4,5 +4,5 @@ import com.aibert.dosw.domain.model.TaskDTO;
 import java.util.List;
 
 public interface TaskServicePort {
-    List<TaskDTO> getPrioritizedTasks(Long studentId);
+    List<TaskDTO> getPrioritizedTasks(String studentId);
 }

@@ -1,97 +1,105 @@
-package com.aibert.dosw.infrastructure.adapters.out.api.groq;
+package com.aibert.dosw.infrastructure.adapters.out.api.gemini;
 
 import com.aibert.dosw.domain.model.Recommendation;
 import com.aibert.dosw.domain.port.out.GenerativeAiPort;
-import com.aibert.dosw.infrastructure.adapters.out.api.gemini.GeminiAdapter;
-import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequest;
-import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponse;
-import com.aibert.dosw.infrastructure.adapters.out.feign.GroqAIClient;
+import com.aibert.dosw.infrastructure.adapters.out.api.gemini.dto.GeminiRequest;
+import com.aibert.dosw.infrastructure.adapters.out.api.gemini.dto.GeminiResponse;
+import com.aibert.dosw.infrastructure.adapters.out.feign.GeminiAIClient;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.aibert.dosw.infrastructure.adapters.out.api.gemini.GeminiAdapter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Adaptador para la API de Gemini (Google Generative Language API).
+ * Actúa como proveedor secundario de IA: se invoca cuando Groq falla
+ * (fallback).
+ * Implementa Circuit Breaker para resiliencia (AIB-28).
+ */
 @Component
-@Primary
-public class GroqAdapter implements GenerativeAiPort {
+public class GeminiAdapter implements GenerativeAiPort {
 
-    private static final Logger log = LoggerFactory.getLogger(GroqAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(GeminiAdapter.class);
     private static final String RECOMMENDATIONS_FIELD = "recommendations";
     private static final String CONFIDENCE_SCORE_FIELD = "confidenceScore";
     private static final String MOTIVATIONAL_MESSAGE_FIELD = "motivationalMessage";
-    private static final String DEFAULT_MOTIVATION = "Tu puedes hacerlo.";
+    private static final String DEFAULT_MOTIVATION = "Cada esfuerzo que haces te acerca a tus metas.";
 
-    private final GroqAIClient groqAIClient;
-    private final String groqApiKey;
-    private final String groqModel;
+    private final GeminiAIClient geminiAIClient;
+    private final String geminiApiKey;
+    private final String geminiModel;
     private final ObjectMapper objectMapper;
-    private final GeminiAdapter geminiAdapter;
 
-    public GroqAdapter(
-            GroqAIClient groqAIClient,
-            @Value("${groq.api.key}") String groqApiKey,
-            @Value("${groq.api.model}") String groqModel,
-            ObjectMapper objectMapper,
-            @Qualifier("geminiAdapter") GeminiAdapter geminiAdapter) {
-        this.groqAIClient = groqAIClient;
-        this.groqApiKey = groqApiKey;
-        this.groqModel = groqModel;
+    public GeminiAdapter(
+            GeminiAIClient geminiAIClient,
+            @Value("${gemini.api.key}") String geminiApiKey,
+            @Value("${gemini.api.model}") String geminiModel,
+            ObjectMapper objectMapper) {
+        this.geminiAIClient = geminiAIClient;
+        this.geminiApiKey = geminiApiKey;
+        this.geminiModel = geminiModel;
         this.objectMapper = objectMapper;
-        this.geminiAdapter = geminiAdapter;
     }
 
     @Override
-    @CircuitBreaker(name = "groqAI", fallbackMethod = "fallbackToGemini")
-    @Retry(name = "groqAI", fallbackMethod = "fallbackToGemini")
+    @CircuitBreaker(name = "geminiAI", fallbackMethod = "fallbackRecommendation")
     public Recommendation generateRecommendation(String studentId, String enrichedContext, String requestType) {
-        log.info("Generando recomendacion ({}) con Groq modelo '{}' para studentId={}", requestType, groqModel,
+        log.info("Generando recomendacion ({}) con Gemini modelo '{}' para studentId={}", requestType, geminiModel,
                 studentId);
 
-        GroqRequest request = GroqRequest.builder()
-                .model(groqModel)
-                .messages(List.of(
-                        GroqRequest.Message.builder()
-                                .role("system")
-                                .content(
-                                        "Eres AI.BERT, un tutor inteligente y compasivo para estudiantes universitarios. "
-                                                +
-                                                "Siempre respondes en formato JSON puro sin bloques markdown.")
-                                .build(),
-                        GroqRequest.Message.builder()
+        String prompt = buildPrompt(enrichedContext, requestType);
+
+        GeminiRequest request = GeminiRequest.builder()
+                .contents(List.of(
+                        GeminiRequest.Content.builder()
                                 .role("user")
-                                .content(buildPrompt(enrichedContext, requestType))
+                                .parts(List.of(GeminiRequest.Part.builder().text(prompt).build()))
                                 .build()))
-                .maxTokens(800)
-                .temperature(0.7)
+                .generationConfig(GeminiRequest.GenerationConfig.builder()
+                        .maxOutputTokens(800)
+                        .temperature(0.7)
+                        .build())
                 .build();
 
-        GroqResponse response = groqAIClient.chatCompletion("Bearer " + groqApiKey, request);
+        GeminiResponse response = geminiAIClient.generateContent(geminiModel, geminiApiKey, request);
         String generatedText = extractText(response);
         return parseAIResponse(studentId, generatedText, requestType);
     }
 
     @SuppressWarnings("unused")
-    private Recommendation fallbackToGemini(String studentId, String enrichedContext, String requestType,
+    private Recommendation fallbackRecommendation(String studentId, String enrichedContext, String requestType,
             Throwable throwable) {
-        log.warn("Fallback Groq → Gemini activado para studentId={} debido a: {}", studentId, throwable.getMessage());
-        return geminiAdapter.generateRecommendation(studentId, enrichedContext, requestType);
+        log.warn("Fallback Gemini activado para studentId={} debido a: {}", studentId, throwable.getMessage());
+        return Recommendation.builder()
+                .studentId(studentId)
+                .confidenceScore(0.0)
+                .recommendationType(requestType)
+                .motivationalMessage("Nuestros asistentes de IA no están disponibles en este momento. " +
+                        "Mientras tanto, revisa tus tareas pendientes y organiza tu tiempo.")
+                .recommendations(List.of(
+                        Recommendation.RecommendationItem.builder()
+                                .title("Revision general")
+                                .description("Revisa tus notas más recientes y prioriza tareas cercanas.")
+                                .type("GENERAL")
+                                .itemScore(0.5)
+                                .build()))
+                .dateGenerated(LocalDate.now())
+                .build();
     }
 
     private String buildPrompt(String enrichedContext, String requestType) {
-        return "Analiza el siguiente contexto del estudiante:\n\n" +
+        return "Eres AI.BERT, un tutor inteligente y compasivo para estudiantes universitarios. " +
+                "Siempre respondes en formato JSON puro sin bloques markdown.\n\n" +
+                "Analiza el siguiente contexto del estudiante:\n\n" +
                 enrichedContext + "\n\n" +
-                "El estudiante solicito una recomendacion de tipo: " + requestType + ". " +
+                "El estudiante solicitó una recomendación de tipo: " + requestType + ". " +
                 "Responde estrictamente en JSON puro y genera entre 1 y 5 recomendaciones.\n" +
                 "{\n" +
                 "  \"" + CONFIDENCE_SCORE_FIELD + "\": 0.95,\n" +
@@ -107,11 +115,16 @@ public class GroqAdapter implements GenerativeAiPort {
                 "}";
     }
 
-    private String extractText(GroqResponse response) {
-        if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
-            GroqResponse.Message message = response.getChoices().get(0).getMessage();
-            if (message != null && message.getContent() != null) {
-                return message.getContent();
+    private String extractText(GeminiResponse response) {
+        if (response != null && response.getCandidates() != null && !response.getCandidates().isEmpty()) {
+            GeminiResponse.Candidate candidate = response.getCandidates().get(0);
+            if (candidate.getContent() != null
+                    && candidate.getContent().getParts() != null
+                    && !candidate.getContent().getParts().isEmpty()) {
+                String text = candidate.getContent().getParts().get(0).getText();
+                if (text != null) {
+                    return text;
+                }
             }
         }
         return "{}";
@@ -126,15 +139,15 @@ public class GroqAdapter implements GenerativeAiPort {
             List<Recommendation.RecommendationItem> items = parseRecommendationItems(root, requestType, confidence);
             return buildRecommendation(studentId, requestType, confidence, motivation, items);
         } catch (Exception e) {
-            log.error("Error parseando respuesta de Groq para studentId={}: {}", studentId, e.getMessage());
+            log.error("Error parseando respuesta de Gemini para studentId={}: {}", studentId, e.getMessage());
             return Recommendation.builder()
                     .studentId(studentId)
                     .confidenceScore(0.1)
                     .recommendationType(requestType)
-                    .motivationalMessage("El servicio presenta problemas tecnicos, pero no te rindas.")
+                    .motivationalMessage("El servicio presenta problemas técnicos, pero no te rindas.")
                     .recommendations(List.of(
                             Recommendation.RecommendationItem.builder()
-                                    .title("Manten la calma")
+                                    .title("Mantén la calma")
                                     .description("Toma un descanso y revisa tus notas.")
                                     .type("GENERAL")
                                     .itemScore(0.1)
@@ -145,11 +158,8 @@ public class GroqAdapter implements GenerativeAiPort {
     }
 
     private Recommendation buildRecommendation(
-            String studentId,
-            String requestType,
-            Double confidence,
-            String message,
-            List<Recommendation.RecommendationItem> items) {
+            String studentId, String requestType, Double confidence,
+            String message, List<Recommendation.RecommendationItem> items) {
         return Recommendation.builder()
                 .studentId(studentId)
                 .confidenceScore(confidence)
@@ -161,15 +171,12 @@ public class GroqAdapter implements GenerativeAiPort {
     }
 
     private List<Recommendation.RecommendationItem> parseRecommendationItems(
-            JsonNode root,
-            String requestType,
-            Double confidence) {
+            JsonNode root, String requestType, Double confidence) {
         List<Recommendation.RecommendationItem> items = new ArrayList<>();
         JsonNode recommendationsNode = root.get(RECOMMENDATIONS_FIELD);
         if (recommendationsNode == null || !recommendationsNode.isArray()) {
             return items;
         }
-
         for (JsonNode recNode : recommendationsNode) {
             items.add(Recommendation.RecommendationItem.builder()
                     .title(readText(recNode, "title", "Recomendacion"))

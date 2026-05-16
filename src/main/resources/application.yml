@@ -7,13 +7,25 @@ spring:
   application:
     name: recommendation-service
 
+  config:
+    import: "optional:file:.env[.properties]"
+
   cloud:
     openfeign:
       circuitbreaker:
         enabled: true
 
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    display-request-duration: true
+
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:dev-secret}
 
 # --- Selector de proveedor de IA ---
 # Valor esperado: "groq"
@@ -26,6 +38,13 @@ groq:
     base-url: "https://api.groq.com/openai/v1"
     key: "${GROQ_API_KEY:}"
     model: "${GROQ_MODEL:llama-3.3-70b-versatile}"
+
+# --- Configuración Gemini ---
+gemini:
+  api:
+    base-url: "https://generativelanguage.googleapis.com/v1beta/models"
+    key: "${GEMINI_API_KEY:}"
+    model: "${GEMINI_MODEL:gemini-1.5-flash}"
 
 # --- URLs de microservicios internos ---
 services:
@@ -44,6 +63,10 @@ feign:
         readTimeout: 15000
 
       groqAiClient:
+        connectTimeout: 5000
+        readTimeout: 20000
+
+      geminiAiClient:
         connectTimeout: 5000
         readTimeout: 20000
 
@@ -67,6 +90,14 @@ resilience4j:
         permittedNumberOfCallsInHalfOpenState: 3
         slidingWindowType: COUNT_BASED
         minimumNumberOfCalls: 5
+      geminiAI:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+        minimumNumberOfCalls: 5
 
   retry:
     instances:
@@ -77,10 +108,19 @@ resilience4j:
           - feign.FeignException
           - java.io.IOException
           - java.net.SocketTimeoutException
+      geminiAI:
+        maxAttempts: 3
+        waitDuration: 2s
+        retryExceptions:
+          - feign.FeignException
+          - java.io.IOException
+          - java.net.SocketTimeoutException
 
   timelimiter:
     instances:
       groqAI:
+        timeoutDuration: 20s
+      geminiAI:
         timeoutDuration: 20s
 
 management:
@@ -100,9 +140,12 @@ spring:
     activate:
       on-profile: local
 
+  autoconfigure:
+    exclude: ${SPRING_AUTOCONFIGURE_EXCLUDE:org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration}
+
   data:
     mongodb:
-      uri: ${MONGO_URI}
+      uri: ${MONGO_URI:mongodb://localhost:27017/recommendationservic_db}
       auto-index-creation: true
 
   rabbitmq:

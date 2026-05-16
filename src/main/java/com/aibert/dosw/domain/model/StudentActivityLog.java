@@ -17,22 +17,22 @@ import java.time.LocalDateTime;
 public class StudentActivityLog {
     @Id
     private String id;
-    
-    private Long studentId;
-    
+
+    private String studentId;
+
     private Long taskId; // ID de la tarea proveniente del task-service
-    
+
     private String subject; // Nombre de la materia (ej. Matemáticas, Programación)
-    
+
     private String activityType; // Ej: "TASK_COMPLETED", "TASK_FAILED", "TASK_RESCHEDULED"
-    
+
     private LocalDateTime scheduledStartTime; // Para analizar patrones de horario (ej. le cuesta a las 8 AM)
-    
+
     private LocalDateTime actualCompletionTime; // Cuando realmente se completó/falló
-    
+
     private Integer focusScore; // Métrica opcional (1-100) sobre qué tan concentrado estuvo
-    
+
     private String userFeedback; // Comentario opcional del estudiante sobre la tarea
-    
+
     private LocalDateTime logDate; // Cuándo se registró este log en el sistema
 }

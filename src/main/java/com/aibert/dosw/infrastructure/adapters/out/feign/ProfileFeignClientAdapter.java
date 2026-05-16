@@ -6,8 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Adaptador que intenta obtener el estilo de aprendizaje del profile-service real vía Feign.
- * Si el servicio no está disponible, retorna un valor por defecto como fallback.
+ * Adaptador que intenta obtener el estilo de aprendizaje del profile-service
+ * real vía Feign.
+ * Si el servicio no está disponible, retorna un valor por defecto como
+ * fallback.
  */
 @Component
 public class ProfileFeignClientAdapter implements ProfileServicePort {
@@ -22,7 +24,7 @@ public class ProfileFeignClientAdapter implements ProfileServicePort {
     }
 
     @Override
-    public String getLearningStyle(Long studentId) {
+    public String getLearningStyle(String studentId) {
         try {
             log.info("Consultando profile-service para estilo de aprendizaje del studentId={}", studentId);
             String learningStyle = profileFeignClient.getLearningStyle(studentId);

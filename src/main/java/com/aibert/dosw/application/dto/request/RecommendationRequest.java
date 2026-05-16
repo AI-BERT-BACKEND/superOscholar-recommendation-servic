@@ -4,15 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class RecommendationRequest {
 
-    @NotNull(message = "El studentId es obligatorio")
-    private Long studentId;
+    @NotBlank(message = "El studentId es obligatorio")
+    private String studentId;
 
     /**
      * R18: Tipo de recomendación solicitado.

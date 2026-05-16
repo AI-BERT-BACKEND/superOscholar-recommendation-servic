@@ -5,5 +5,5 @@ import com.aibert.dosw.infrastructure.adapters.in.rest.dto.DailyPlanDTO;
 import java.time.LocalDate;
 
 public interface GenerateDailyPlanUseCase {
-    DailyPlanDTO execute(Long studentId, LocalDate currentDate);
+    DailyPlanDTO execute(String studentId, LocalDate currentDate);
 }

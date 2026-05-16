@@ -15,7 +15,8 @@ import java.util.List;
  * Campos obligatorios según spec:
  * - todayTasks (Array, máx 5, ordenadas por prioridad)
  * - reschedulableTasks (Array, deadline > 3 días + prioridad LOW/MEDIUM)
- * - reorganizationSuggestions (Array, solo cuando hay reprogramables) — Nuevo R19
+ * - reorganizationSuggestions (Array, solo cuando hay reprogramables) — Nuevo
+ * R19
  * - urgentAlert (Boolean, true si deadline < 24h)
  * - message (String, mensaje descriptivo)
  */
@@ -24,12 +25,12 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DailyPlanDTO {
-    private Long studentId;
+    private String studentId;
     private LocalDate planDate;
-    private List<TaskDTO> todayTasks;                                       // R19: Antes "suggestedTasks", renombrado
-    private List<TaskDTO> reschedulableTasks;                               // R19: Tareas reprogramables
-    private List<ReorganizationSuggestionDTO> reorganizationSuggestions;    // R19-RN-04: Sugerencias de reorganización
+    private List<TaskDTO> todayTasks; // R19: Antes "suggestedTasks", renombrado
+    private List<TaskDTO> reschedulableTasks; // R19: Tareas reprogramables
+    private List<ReorganizationSuggestionDTO> reorganization; // AIB-29: Sugerencias de reorganización semanal
     private Integer totalEstimatedMinutes;
-    private boolean urgentAlert;                                            // R19: true si deadline < 24h
-    private String message;                                                 // R19: Mensaje descriptivo obligatorio
+    private boolean urgentAlert; // R19: true si deadline < 24h
+    private String message; // R19: Mensaje descriptivo obligatorio
 }

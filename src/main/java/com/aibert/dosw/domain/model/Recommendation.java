@@ -18,9 +18,9 @@ import java.util.List;
 public class Recommendation {
     @Id
     private String id;
-    private Long studentId;
+    private String studentId;
     private String motivationalMessage;
-    
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -31,9 +31,9 @@ public class Recommendation {
         private String type; // PRODUCTIVIDAD, CARGA, GENERAL
         private Double itemScore;
     }
-    
+
     private List<RecommendationItem> recommendations; // Array de recomendaciones (1-5)
-    
+
     private LocalDate dateGenerated;
     private String userFeedback; // "LIKE", "DISLIKE", null
     private Double confidenceScore; // Nivel de confianza de la IA en su recomendación global

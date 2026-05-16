@@ -38,7 +38,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
     private final RecommendationMapper recommendationMapper;
 
     @Override
-    public DailyRecommendationDTO execute(Long studentId, String requestType) {
+    public DailyRecommendationDTO execute(String studentId, String requestType) {
         validateHistory(studentId);
 
         // Normalize requestType and handle FA-02
@@ -47,7 +47,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         Optional<Recommendation> existing = repository.findByStudentIdAndDateGenerated(studentId, LocalDate.now());
         if (existing.isPresent() && effectiveType.equals(existing.get().getRecommendationType())) {
             DailyRecommendationDTO dto = recommendationMapper.toDailyRecommendationDto(existing.get());
-            dto.setMessage("Aquí tienes tus recomendaciones");
+            dto.setMessage("Aquí tienes tus recomendaciones personalizadas");
             return dto;
         }
 
@@ -69,11 +69,11 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         // 4. Guardar y retornar
         Recommendation saved = repository.save(newRecommendation);
         DailyRecommendationDTO dto = recommendationMapper.toDailyRecommendationDto(saved);
-        dto.setMessage("Aquí tienes tus recomendaciones");
+        dto.setMessage("Aquí tienes tus recomendaciones personalizadas");
         return dto;
     }
 
-    private String normalizeAndCheckData(Long studentId, String requestType) {
+    private String normalizeAndCheckData(String studentId, String requestType) {
         if (requestType == null || requestType.isBlank()) {
             return "GENERAL";
         }
@@ -97,7 +97,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         return type;
     }
 
-    private double calculateInternalConfidenceScore(Long studentId) {
+    private double calculateInternalConfidenceScore(String studentId) {
         List<StudentActivityLog> logs = activityLogRepository.findByStudentId(studentId);
 
         if (logs.isEmpty()) {
@@ -142,7 +142,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         return Math.round(combined * 100.0) / 100.0;
     }
 
-    private String buildEnrichedContext(Long studentId) {
+    private String buildEnrichedContext(String studentId) {
         StringBuilder context = new StringBuilder();
 
         String learningStyle = profileServicePort.getLearningStyle(studentId);
@@ -215,7 +215,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         return context.toString();
     }
 
-    private void validateHistory(Long studentId) {
+    private void validateHistory(String studentId) {
         Optional<StudentActivityLog> oldestLog = activityLogRepository.findFirstByStudentIdOrderByLogDateAsc(studentId);
 
         if (oldestLog.isEmpty() || oldestLog.get().getLogDate() == null

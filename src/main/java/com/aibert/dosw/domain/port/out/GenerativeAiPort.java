@@ -6,10 +6,11 @@ public interface GenerativeAiPort {
     /**
      * Genera recomendaciones personalizadas usando IA.
      *
-     * @param studentId      ID del estudiante
+     * @param studentId       ID del estudiante
      * @param enrichedContext Contexto enriquecido con datos reales del estudiante
-     * @param requestType    Tipo de recomendación: PRODUCTIVIDAD, CARGA, GENERAL (nullable, default GENERAL)
+     * @param requestType     Tipo de recomendación: PRODUCTIVIDAD, CARGA, GENERAL
+     *                        (nullable, default GENERAL)
      * @return Recommendation con tips, mensaje y score de la IA
      */
-    Recommendation generateRecommendation(Long studentId, String enrichedContext, String requestType);
+    Recommendation generateRecommendation(String studentId, String enrichedContext, String requestType);
 }

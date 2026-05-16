@@ -21,11 +21,11 @@ public class MongoRecommendationRepositoryAdapter implements RecommendationRepos
     }
 
     @Override
-    public Optional<Recommendation> findByStudentIdAndDateGenerated(Long studentId, LocalDate dateGenerated) {
+    public Optional<Recommendation> findByStudentIdAndDateGenerated(String studentId, LocalDate dateGenerated) {
         return repository.findByStudentIdAndDateGenerated(studentId, dateGenerated);
     }
 }
 
 interface SpringDataMongoRecommendationRepository extends MongoRepository<Recommendation, String> {
-    Optional<Recommendation> findByStudentIdAndDateGenerated(Long studentId, LocalDate dateGenerated);
+    Optional<Recommendation> findByStudentIdAndDateGenerated(String studentId, LocalDate dateGenerated);
 }

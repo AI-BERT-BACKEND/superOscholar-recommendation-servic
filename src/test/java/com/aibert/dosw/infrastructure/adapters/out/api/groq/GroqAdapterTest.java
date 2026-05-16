@@ -1,6 +1,7 @@
 package com.aibert.dosw.infrastructure.adapters.out.api.groq;
 
 import com.aibert.dosw.domain.model.Recommendation;
+import com.aibert.dosw.infrastructure.adapters.out.api.gemini.GeminiAdapter;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequest;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponse;
 import com.aibert.dosw.infrastructure.adapters.out.feign.GroqAIClient;
@@ -25,7 +26,9 @@ class GroqAdapterTest {
     @Test
     void generateRecommendation_withValidJson_buildsRecommendationFromGroqResponse() {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper());
+        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
+                geminiAdapter);
 
         GroqResponse response = responseWithContent("""
                 {
@@ -43,9 +46,9 @@ class GroqAdapterTest {
                 """);
         when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class))).thenReturn(response);
 
-        Recommendation result = adapter.generateRecommendation(10L, "context", "ACADEMIC");
+        Recommendation result = adapter.generateRecommendation("10", "context", "ACADEMIC");
 
-        assertEquals(10L, result.getStudentId());
+        assertEquals("10", result.getStudentId());
         assertEquals(0.93, result.getConfidenceScore());
         assertEquals("ACADEMIC", result.getRecommendationType());
         assertEquals(1, result.getRecommendations().size());
@@ -62,14 +65,16 @@ class GroqAdapterTest {
     @Test
     void generateRecommendation_withMalformedJson_returnsTechnicalFallback() {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper());
+        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
+                geminiAdapter);
 
         when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class)))
                 .thenReturn(responseWithContent("{not-json"));
 
-        Recommendation result = adapter.generateRecommendation(55L, "context", "GENERAL");
+        Recommendation result = adapter.generateRecommendation("55", "context", "GENERAL");
 
-        assertEquals(55L, result.getStudentId());
+        assertEquals("55", result.getStudentId());
         assertEquals(0.1, result.getConfidenceScore());
         assertEquals("GENERAL", result.getRecommendations().get(0).getType());
         assertTrue(result.getMotivationalMessage().contains("problemas tecnicos"));
@@ -78,14 +83,16 @@ class GroqAdapterTest {
     @Test
     void generateRecommendation_withEmptyChoices_returnsDefaultsFromParser() {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper());
+        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
+                geminiAdapter);
 
         GroqResponse emptyResponse = new GroqResponse();
         when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class))).thenReturn(emptyResponse);
 
-        Recommendation result = adapter.generateRecommendation(77L, "context", "TIME_MANAGEMENT");
+        Recommendation result = adapter.generateRecommendation("77", "context", "TIME_MANAGEMENT");
 
-        assertEquals(77L, result.getStudentId());
+        assertEquals("77", result.getStudentId());
         assertEquals(0.0, result.getConfidenceScore());
         assertTrue(result.getRecommendations().isEmpty());
     }
@@ -93,7 +100,9 @@ class GroqAdapterTest {
     @Test
     void generateRecommendation_withNullMessageContent_returnsDefaultsFromParser() {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper());
+        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
+                geminiAdapter);
 
         GroqResponse.Message message = new GroqResponse.Message();
         message.setRole("assistant");
@@ -107,27 +116,35 @@ class GroqAdapterTest {
 
         when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class))).thenReturn(response);
 
-        Recommendation result = adapter.generateRecommendation(91L, "context", "GENERAL");
+        Recommendation result = adapter.generateRecommendation("91", "context", "GENERAL");
         assertEquals(0.0, result.getConfidenceScore());
         assertTrue(result.getRecommendations().isEmpty());
     }
 
     @Test
-    void fallbackRecommendation_canBeInvokedAndReturnsGracefulRecommendation() throws Exception {
+    void fallbackToGemini_canBeInvokedAndDelegatesToGeminiAdapter() throws Exception {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper());
+        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
+                geminiAdapter);
+
+        Recommendation geminiResult = Recommendation.builder()
+                .studentId("22")
+                .confidenceScore(0.8)
+                .recommendationType("GENERAL")
+                .recommendations(List.of())
+                .build();
+        when(geminiAdapter.generateRecommendation(eq("22"), any(), eq("GENERAL"))).thenReturn(geminiResult);
 
         Method method = GroqAdapter.class.getDeclaredMethod(
-                "fallbackRecommendation", Long.class, String.class, String.class, Throwable.class);
+                "fallbackToGemini", String.class, String.class, String.class, Throwable.class);
         method.setAccessible(true);
 
         Recommendation fallback = (Recommendation) method.invoke(
-                adapter, 22L, "ctx", "GENERAL", new RuntimeException("boom"));
+                adapter, "22", "ctx", "GENERAL", new RuntimeException("boom"));
 
-        assertEquals(22L, fallback.getStudentId());
-        assertEquals(0.0, fallback.getConfidenceScore());
-        assertEquals("GENERAL", fallback.getRecommendationType());
-        assertEquals(1, fallback.getRecommendations().size());
+        assertEquals("22", fallback.getStudentId());
+        assertEquals(0.8, fallback.getConfidenceScore());
         assertDoesNotThrow(fallback::toString);
     }
 

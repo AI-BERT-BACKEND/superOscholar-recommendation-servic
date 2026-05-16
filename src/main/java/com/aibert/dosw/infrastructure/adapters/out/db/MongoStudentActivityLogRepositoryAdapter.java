@@ -21,23 +21,25 @@ public class MongoStudentActivityLogRepositoryAdapter implements StudentActivity
     }
 
     @Override
-    public List<StudentActivityLog> findByStudentId(Long studentId) {
+    public List<StudentActivityLog> findByStudentId(String studentId) {
         return repository.findByStudentId(studentId);
     }
 
     @Override
-    public List<StudentActivityLog> findByStudentIdAndActivityType(Long studentId, String activityType) {
+    public List<StudentActivityLog> findByStudentIdAndActivityType(String studentId, String activityType) {
         return repository.findByStudentIdAndActivityType(studentId, activityType);
     }
 
     @Override
-    public Optional<StudentActivityLog> findFirstByStudentIdOrderByLogDateAsc(Long studentId) {
+    public Optional<StudentActivityLog> findFirstByStudentIdOrderByLogDateAsc(String studentId) {
         return repository.findFirstByStudentIdOrderByLogDateAsc(studentId);
     }
 }
 
 interface SpringDataMongoStudentActivityLogRepository extends MongoRepository<StudentActivityLog, String> {
-    List<StudentActivityLog> findByStudentId(Long studentId);
-    List<StudentActivityLog> findByStudentIdAndActivityType(Long studentId, String activityType);
-    Optional<StudentActivityLog> findFirstByStudentIdOrderByLogDateAsc(Long studentId);
+    List<StudentActivityLog> findByStudentId(String studentId);
+
+    List<StudentActivityLog> findByStudentIdAndActivityType(String studentId, String activityType);
+
+    Optional<StudentActivityLog> findFirstByStudentIdOrderByLogDateAsc(String studentId);
 }

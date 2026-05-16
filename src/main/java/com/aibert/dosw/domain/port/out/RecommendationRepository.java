@@ -6,5 +6,6 @@ import java.util.Optional;
 
 public interface RecommendationRepository {
     Recommendation save(Recommendation recommendation);
-    Optional<Recommendation> findByStudentIdAndDateGenerated(Long studentId, LocalDate dateGenerated);
+
+    Optional<Recommendation> findByStudentIdAndDateGenerated(String studentId, LocalDate dateGenerated);
 }

@@ -7,7 +7,10 @@ import java.util.Optional;
 
 public interface StudentActivityLogRepository {
     StudentActivityLog save(StudentActivityLog log);
-    List<StudentActivityLog> findByStudentId(Long studentId);
-    List<StudentActivityLog> findByStudentIdAndActivityType(Long studentId, String activityType);
-    Optional<StudentActivityLog> findFirstByStudentIdOrderByLogDateAsc(Long studentId);
+
+    List<StudentActivityLog> findByStudentId(String studentId);
+
+    List<StudentActivityLog> findByStudentIdAndActivityType(String studentId, String activityType);
+
+    Optional<StudentActivityLog> findFirstByStudentIdOrderByLogDateAsc(String studentId);
 }
