@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Color converters de Spring Boot -->
+    <conversionRule conversionWord="clr"
+                    converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wex"
+                    converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
+
+    <!-- Patrón de consola con color + requestId desde MDC -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p){highlight} %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr([req:%X{requestId:-?}]){blue} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wex"/>
+
+    <!-- Patrón de archivo (sin colores ANSI) -->
+    <property name="FILE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${PID:- } --- [%15.15t] [req:%X{requestId:-?}] %-40.40logger{39} : %m%n"/>
+
+    <!-- ── APPENDERS ─────────────────────────────────────────────────────── -->
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Archivo rotativo — solo en prod -->
+    <springProfile name="prod">
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/recommendation-service.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>logs/recommendation-service.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>500MB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${FILE_LOG_PATTERN}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- ── NIVELES POR PAQUETE ───────────────────────────────────────────── -->
+
+    <!-- Reducir ruido de frameworks -->
+    <logger name="org.springframework.web"            level="WARN"/>
+    <logger name="org.springframework.security"       level="WARN"/>
+    <logger name="org.springframework.data.mongodb"   level="WARN"/>
+    <logger name="org.springframework.cloud.openfeign" level="WARN"/>
+    <logger name="feign"                              level="WARN"/>
+    <logger name="org.mongodb.driver"                 level="WARN"/>
+
+    <!-- Resilience4j: INFO para ver cuando CB abre/cierra -->
+    <logger name="io.github.resilience4j" level="INFO"/>
+
+    <!-- Aplicación — DEBUG en local/default, INFO en qa/prod -->
+    <springProfile name="local,default">
+        <logger name="com.aibert.dosw" level="DEBUG"/>
+    </springProfile>
+    <springProfile name="qa,prod">
+        <logger name="com.aibert.dosw" level="INFO"/>
+    </springProfile>
+
+    <!-- ── ROOT ─────────────────────────────────────────────────────────── -->
+
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="local,default,qa">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+</configuration>

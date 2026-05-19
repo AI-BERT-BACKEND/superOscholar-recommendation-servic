@@ -49,7 +49,7 @@ public class RecommendationController {
                         @Valid @RequestBody RecommendationRequest request) {
                 return ResponseEntity
                                 .ok(generateRecommendationUseCase.execute(request.getStudentId(),
-                                                request.getRequestType()));
+                                                request.getRequestType(), request.getContext()));
         }
 
         /**

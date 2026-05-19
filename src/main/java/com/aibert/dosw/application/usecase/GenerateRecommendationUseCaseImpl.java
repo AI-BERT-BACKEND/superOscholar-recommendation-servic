@@ -1,5 +1,6 @@
 package com.aibert.dosw.application.usecase;
 
+import com.aibert.dosw.application.dto.request.RecommendationContextDTO;
 import com.aibert.dosw.application.mapper.RecommendationMapper;
 import com.aibert.dosw.domain.model.Recommendation;
 import com.aibert.dosw.domain.model.StudentActivityLog;
@@ -38,11 +39,11 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
     private final RecommendationMapper recommendationMapper;
 
     @Override
-    public DailyRecommendationDTO execute(String studentId, String requestType) {
+    public DailyRecommendationDTO execute(String studentId, String requestType, RecommendationContextDTO context) {
         validateHistory(studentId);
 
         // Normalize requestType and handle FA-02
-        String effectiveType = normalizeAndCheckData(studentId, requestType);
+        String effectiveType = normalizeAndCheckData(studentId, requestType, context);
 
         Optional<Recommendation> existing = repository.findByStudentIdAndDateGenerated(studentId, LocalDate.now());
         if (existing.isPresent() && effectiveType.equals(existing.get().getRecommendationType())) {
@@ -51,8 +52,11 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
             return dto;
         }
 
-        // 1. Armar el Contexto Orquestando diferentes fuentes
-        String enrichedContext = buildEnrichedContext(studentId);
+        // 1. Armar el Contexto: si viene del planning-service se usa directamente;
+        // si no, se consultan las fuentes externas (evita llamadas circulares)
+        String enrichedContext = (context != null)
+                ? buildEnrichedContextFromDTO(studentId, context)
+                : buildEnrichedContext(studentId);
 
         // 2. Llamar a la API externa (protegida con Circuit Breaker + Retry)
         Recommendation newRecommendation = generativeAiPort.generateRecommendation(studentId, enrichedContext,
@@ -73,7 +77,7 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         return dto;
     }
 
-    private String normalizeAndCheckData(String studentId, String requestType) {
+    private String normalizeAndCheckData(String studentId, String requestType, RecommendationContextDTO context) {
         if (requestType == null || requestType.isBlank()) {
             return "GENERAL";
         }
@@ -82,8 +86,18 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
             return "GENERAL";
         }
 
-        // FA-02: Solicita tipo específico sin datos suficientes -> GENERAL
+        // FA-02: Solicita tipo CARGA sin datos suficientes -> GENERAL
         if (type.equals("CARGA")) {
+            // Si viene contexto del planning-service, usar criticalTaskCount como indicador
+            if (context != null) {
+                int taskCount = context.getPendingTaskCount() != null ? context.getPendingTaskCount() : 0;
+                if (taskCount == 0) {
+                    log.info("FA-02: No hay tareas en el contexto para recomendación de CARGA. Fallback a GENERAL.");
+                    return "GENERAL";
+                }
+                return type;
+            }
+            // Sin contexto: consultar planning-service
             try {
                 List<TaskDTO> tasks = taskServicePort.getPrioritizedTasks(studentId);
                 if (tasks == null || tasks.isEmpty()) {
@@ -140,6 +154,79 @@ public class GenerateRecommendationUseCaseImpl implements GenerateRecommendation
         }
         double combined = (internalScore * 0.6) + (aiScore * 0.4);
         return Math.round(combined * 100.0) / 100.0;
+    }
+
+    /**
+     * Construye el prompt de IA usando el contexto enriquecido que envió el
+     * planning-service.
+     * Evita llamadas circulares: el planning-service ya tiene los datos calculados.
+     */
+    private String buildEnrichedContextFromDTO(String studentId, RecommendationContextDTO ctx) {
+        StringBuilder context = new StringBuilder();
+
+        // Datos del perfil (sigue siendo necesario, no lo tiene el planning-service)
+        try {
+            String learningStyle = profileServicePort.getLearningStyle(studentId);
+            context.append("Estilo de aprendizaje del estudiante: ").append(learningStyle).append(".\n");
+        } catch (Exception e) {
+            log.warn("No se pudo obtener estilo de aprendizaje para studentId={}: {}", studentId, e.getMessage());
+        }
+
+        // Historial de actividad propio
+        List<StudentActivityLog> logs = activityLogRepository.findByStudentId(studentId);
+        if (!logs.isEmpty()) {
+            context.append("Historial reciente de actividad:\n");
+            for (StudentActivityLog activityLog : logs) {
+                context.append("- Materia: ").append(activityLog.getSubject())
+                        .append(" | Acción: ").append(activityLog.getActivityType())
+                        .append(" | Completado a las: ")
+                        .append(activityLog.getActualCompletionTime() != null
+                                ? activityLog.getActualCompletionTime().toLocalTime()
+                                : "N/A")
+                        .append("\n");
+            }
+        }
+
+        // Contexto del planning-service
+        if (ctx.getTasks() != null && !ctx.getTasks().isEmpty()) {
+            context.append("\nTareas del plan semanal (provistas por el engine de planificación):\n");
+            for (RecommendationContextDTO.TaskContext task : ctx.getTasks()) {
+                context.append("- ").append(task.getTitle())
+                        .append(" [Materia: ").append(task.getSubjectId()).append("]")
+                        .append(" | Prioridad: ").append(task.getPriority())
+                        .append(" | Tipo: ").append(task.getType())
+                        .append(" | Dificultad: ").append(task.getDifficulty()).append("/5")
+                        .append(" | Deadline: ")
+                        .append(task.getDeadline() != null ? task.getDeadline().toLocalDate() : "sin fecha")
+                        .append(" | Duración: ").append(task.getEstimatedDurationMinutes()).append(" min")
+                        .append(" | Estado: ").append(task.getStatus())
+                        .append("\n");
+            }
+        }
+
+        int pending = ctx.getPendingTaskCount() != null ? ctx.getPendingTaskCount() : 0;
+        int critical = ctx.getCriticalTaskCount() != null ? ctx.getCriticalTaskCount() : 0;
+        int unassigned = ctx.getUnassignedTaskCount() != null ? ctx.getUnassignedTaskCount() : 0;
+        int dailyCap = ctx.getDailyCapMinutes() != null ? ctx.getDailyCapMinutes() : 240;
+        boolean fullyAssigned = Boolean.TRUE.equals(ctx.getFullyAssigned());
+
+        context.append("\nResumen del plan semanal: ")
+                .append(pending).append(" tareas pendientes, ")
+                .append(critical).append(" CRITICAL, ")
+                .append(unassigned).append(" sin asignar, ")
+                .append("límite diario ").append(dailyCap).append(" min, ")
+                .append("plan ").append(fullyAssigned ? "completamente asignado." : "con tareas sin cubrir.")
+                .append("\n");
+
+        if (ctx.getOverloadedDays() != null && !ctx.getOverloadedDays().isEmpty()) {
+            context.append("Días con sobrecarga detectada:\n");
+            for (RecommendationContextDTO.OverloadedDay day : ctx.getOverloadedDays()) {
+                context.append("- ").append(day.getDate())
+                        .append(": ").append(day.getExcessMinutes()).append(" min en exceso\n");
+            }
+        }
+
+        return context.toString();
     }
 
     private String buildEnrichedContext(String studentId) {

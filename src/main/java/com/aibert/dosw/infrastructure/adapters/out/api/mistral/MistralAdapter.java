@@ -1,74 +1,65 @@
-package com.aibert.dosw.infrastructure.adapters.out.api.groq;
+package com.aibert.dosw.infrastructure.adapters.out.api.mistral;
 
 import com.aibert.dosw.domain.model.Recommendation;
 import com.aibert.dosw.domain.port.out.GenerativeAiPort;
 import com.aibert.dosw.infrastructure.adapters.in.rest.dto.ReorganizationSuggestionDTO;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequest;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponse;
-import com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapter;
-import com.aibert.dosw.infrastructure.adapters.out.feign.GroqAIClient;
+import com.aibert.dosw.infrastructure.adapters.out.feign.MistralAIClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-
-import java.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Component
-@Primary
-public class GroqAdapter implements GenerativeAiPort {
+@Component("mistralAdapter")
+public class MistralAdapter implements GenerativeAiPort {
 
-    private static final Logger log = LoggerFactory.getLogger(GroqAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(MistralAdapter.class);
     private static final String RECOMMENDATIONS_FIELD = "recommendations";
     private static final String CONFIDENCE_SCORE_FIELD = "confidenceScore";
     private static final String MOTIVATIONAL_MESSAGE_FIELD = "motivationalMessage";
     private static final String DEFAULT_MOTIVATION = "Tu puedes hacerlo.";
 
-    private final GroqAIClient groqAIClient;
-    private final String groqApiKey;
-    private final String groqModel;
+    private final MistralAIClient mistralAIClient;
+    private final String mistralApiKey;
+    private final String mistralModel;
     private final ObjectMapper objectMapper;
-    private final MistralAdapter mistralAdapter;
 
-    public GroqAdapter(
-            GroqAIClient groqAIClient,
-            @Value("${groq.api.key}") String groqApiKey,
-            @Value("${groq.api.model}") String groqModel,
-            ObjectMapper objectMapper,
-            @Qualifier("mistralAdapter") MistralAdapter mistralAdapter) {
-        this.groqAIClient = groqAIClient;
-        this.groqApiKey = groqApiKey != null ? groqApiKey.trim() : "";
-        this.groqModel = groqModel;
+    public MistralAdapter(
+            MistralAIClient mistralAIClient,
+            @Value("${mistral.api.key}") String mistralApiKey,
+            @Value("${mistral.api.model}") String mistralModel,
+            ObjectMapper objectMapper) {
+        this.mistralAIClient = mistralAIClient;
+        this.mistralApiKey = mistralApiKey;
+        this.mistralModel = mistralModel;
         this.objectMapper = objectMapper;
-        this.mistralAdapter = mistralAdapter;
     }
 
     @Override
-    @CircuitBreaker(name = "groqAI", fallbackMethod = "fallbackToMistral")
-    @Retry(name = "groqAI", fallbackMethod = "fallbackToMistral")
+    @CircuitBreaker(name = "mistralAI", fallbackMethod = "fallbackRecommendation")
+    @Retry(name = "mistralAI", fallbackMethod = "fallbackRecommendation")
     public Recommendation generateRecommendation(String studentId, String enrichedContext, String requestType) {
-        log.info("Generando recomendacion ({}) con Groq modelo '{}' para studentId={}", requestType, groqModel,
+        log.info("Generando recomendacion ({}) con Mistral modelo '{}' para studentId={}", requestType, mistralModel,
                 studentId);
 
         GroqRequest request = GroqRequest.builder()
-                .model(groqModel)
+                .model(mistralModel)
                 .messages(List.of(
                         GroqRequest.Message.builder()
                                 .role("system")
                                 .content(
                                         "Eres AI.BERT, un tutor inteligente y compasivo para estudiantes universitarios. "
-                                                +
-                                                "Siempre respondes en formato JSON puro sin bloques markdown.")
+                                                + "Siempre respondes en formato JSON puro sin bloques markdown.")
                                 .build(),
                         GroqRequest.Message.builder()
                                 .role("user")
@@ -78,29 +69,44 @@ public class GroqAdapter implements GenerativeAiPort {
                 .temperature(0.7)
                 .build();
 
-        GroqResponse response = groqAIClient.chatCompletion("Bearer " + groqApiKey, request);
+        GroqResponse response = mistralAIClient.chatCompletion("Bearer " + mistralApiKey, request);
         String generatedText = extractText(response);
         return parseAIResponse(studentId, generatedText, requestType);
     }
 
     @SuppressWarnings("unused")
-    private Recommendation fallbackToMistral(String studentId, String enrichedContext, String requestType,
+    private Recommendation fallbackRecommendation(String studentId, String enrichedContext, String requestType,
             Throwable throwable) {
-        log.warn("Fallback Groq → Mistral activado para studentId={} debido a: {}", studentId, throwable.getMessage());
-        return mistralAdapter.generateRecommendation(studentId, enrichedContext, requestType);
+        log.warn("Fallback estático activado (Mistral también falló) para studentId={} debido a: {}",
+                studentId, throwable.getMessage());
+        return Recommendation.builder()
+                .studentId(studentId)
+                .confidenceScore(0.0)
+                .recommendationType(requestType)
+                .motivationalMessage("El servicio de IA no está disponible en este momento. Intenta más tarde.")
+                .recommendations(List.of(
+                        Recommendation.RecommendationItem.builder()
+                                .title("Servicio no disponible")
+                                .description(
+                                        "No se pudieron generar recomendaciones. Revisa tus apuntes y mantente constante.")
+                                .type(requestType)
+                                .itemScore(0.0)
+                                .build()))
+                .dateGenerated(LocalDate.now())
+                .build();
     }
 
-    // ── AIB-29: Sugerencias de plan diario ───────────────────────────────────────
+    // ── AIB-29: Sugerencias de plan diario ────────────────────────────────────
 
     @Override
-    @CircuitBreaker(name = "groqAI", fallbackMethod = "fallbackDailyPlanToMistral")
-    @Retry(name = "groqAI", fallbackMethod = "fallbackDailyPlanToMistral")
+    @CircuitBreaker(name = "mistralAI", fallbackMethod = "fallbackDailyPlanStatic")
+    @Retry(name = "mistralAI", fallbackMethod = "fallbackDailyPlanStatic")
     public List<ReorganizationSuggestionDTO> generateDailyPlanSuggestions(
             String studentId, String enrichedContext, LocalDate currentDate) {
-        log.info("Generando sugerencias plan diario con Groq para studentId={}", studentId);
+        log.info("Generando sugerencias plan diario con Mistral para studentId={}", studentId);
 
         GroqRequest request = GroqRequest.builder()
-                .model(groqModel)
+                .model(mistralModel)
                 .messages(List.of(
                         GroqRequest.Message.builder()
                                 .role("system")
@@ -115,17 +121,17 @@ public class GroqAdapter implements GenerativeAiPort {
                 .temperature(0.5)
                 .build();
 
-        GroqResponse response = groqAIClient.chatCompletion("Bearer " + groqApiKey, request);
+        GroqResponse response = mistralAIClient.chatCompletion("Bearer " + mistralApiKey, request);
         String generatedText = extractText(response);
         return parseDailyPlanSuggestions(studentId, generatedText, currentDate);
     }
 
     @SuppressWarnings("unused")
-    private List<ReorganizationSuggestionDTO> fallbackDailyPlanToMistral(
+    private List<ReorganizationSuggestionDTO> fallbackDailyPlanStatic(
             String studentId, String enrichedContext, LocalDate currentDate, Throwable throwable) {
-        log.warn("Fallback Groq → Mistral para plan diario de studentId={} debido a: {}",
+        log.warn("Fallback estático para plan diario de studentId={} debido a: {}",
                 studentId, throwable.getMessage());
-        return mistralAdapter.generateDailyPlanSuggestions(studentId, enrichedContext, currentDate);
+        return List.of();
     }
 
     private String buildDailyPlanPrompt(String enrichedContext, LocalDate currentDate) {
@@ -182,7 +188,7 @@ public class GroqAdapter implements GenerativeAiPort {
             }
             return result.stream().limit(5).collect(Collectors.toList());
         } catch (Exception e) {
-            log.error("Error parseando sugerencias de plan diario de Groq para studentId={}: {}",
+            log.error("Error parseando sugerencias de plan diario de Mistral para studentId={}: {}",
                     studentId, e.getMessage());
             return List.of();
         }
@@ -226,7 +232,7 @@ public class GroqAdapter implements GenerativeAiPort {
             List<Recommendation.RecommendationItem> items = parseRecommendationItems(root, requestType, confidence);
             return buildRecommendation(studentId, requestType, confidence, motivation, items);
         } catch (Exception e) {
-            log.error("Error parseando respuesta de Groq para studentId={}: {}", studentId, e.getMessage());
+            log.error("Error parseando respuesta de Mistral para studentId={}: {}", studentId, e.getMessage());
             return Recommendation.builder()
                     .studentId(studentId)
                     .confidenceScore(0.1)
@@ -244,12 +250,8 @@ public class GroqAdapter implements GenerativeAiPort {
         }
     }
 
-    private Recommendation buildRecommendation(
-            String studentId,
-            String requestType,
-            Double confidence,
-            String message,
-            List<Recommendation.RecommendationItem> items) {
+    private Recommendation buildRecommendation(String studentId, String requestType, Double confidence,
+            String message, List<Recommendation.RecommendationItem> items) {
         return Recommendation.builder()
                 .studentId(studentId)
                 .confidenceScore(confidence)
@@ -260,16 +262,13 @@ public class GroqAdapter implements GenerativeAiPort {
                 .build();
     }
 
-    private List<Recommendation.RecommendationItem> parseRecommendationItems(
-            JsonNode root,
-            String requestType,
+    private List<Recommendation.RecommendationItem> parseRecommendationItems(JsonNode root, String requestType,
             Double confidence) {
         List<Recommendation.RecommendationItem> items = new ArrayList<>();
         JsonNode recommendationsNode = root.get(RECOMMENDATIONS_FIELD);
         if (recommendationsNode == null || !recommendationsNode.isArray()) {
             return items;
         }
-
         for (JsonNode recNode : recommendationsNode) {
             items.add(Recommendation.RecommendationItem.builder()
                     .title(readText(recNode, "title", "Recomendacion"))

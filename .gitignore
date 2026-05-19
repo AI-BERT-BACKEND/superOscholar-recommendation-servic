@@ -38,6 +38,9 @@ buildNumber.properties
 !.mvn/wrapper/
 
 # Environment files
+.env
+.env.local
+.env.*.local
 
 # IntelliJ IDEA
 .idea/

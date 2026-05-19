@@ -140,8 +140,7 @@ No se limita a listar tareas; analiza el contexto académico completo del estudi
 | **Azure App Service** | Entorno de ejecución en la nube donde se despliega el contenedor Docker. |
 | **Azure Container Registry (ACR)** | Almacenamiento y versionado de las imágenes Docker generadas en CI/CD. |
 | **GitHub Actions** | Pipelines de integración y despliegue continuo (CI/CD). |
-| **Groq API** | Proveedor LLM primario (formato OpenAI-compatible, modelo `llama-3.3-70b-versatile`) para generación de recomendaciones. |
-| **Gemini API** | Proveedor LLM secundario de Google (formato nativo Gemini, modelo `gemini-1.5-flash`). Se activa como **fallback** automático cuando Groq falla mediante Circuit Breaker. |
+| **Groq API** | Proveedor LLM principal (formato OpenAI-compatible, modelo `llama-3.3-70b-versatile`) para generación de recomendaciones. Fallback estático integrado ante fallos. |
 
 </div>
 
@@ -170,9 +169,8 @@ recommendation-service
 
 </div>
 
-Adicionalmente, el microservicio se conecta con dos proveedores de IA vía HTTP REST:
-- **Groq** — proveedor primario (Circuit Breaker activo)
-- **Gemini** — proveedor secundario (fallback automático cuando Groq no está disponible)
+Adicionalmente, el microservicio se conecta con el proveedor de IA vía HTTP REST:
+- **Groq** — proveedor único de IA (Circuit Breaker + fallback estático integrado)
 
 ### 4.2 Patrones utilizados
 
@@ -182,7 +180,7 @@ Adicionalmente, el microservicio se conecta con dos proveedores de IA vía HTTP 
 |:-------------|:-------------------|
 | **Ports & Adapters (Hexagonal)** | Separación entre lógica de negocio e infraestructura |
 | **Repository Pattern** | Abstracción del acceso a datos con Spring Data MongoDB |
-| **Circuit Breaker + Fallback** | Resiliencia ante fallos de IA externa: Groq falla → Gemini actúa como fallback automático; Gemini falla → fallback estático (Resilience4j) |
+| **Circuit Breaker + Fallback** | Resiliencia ante fallos de Groq: si el Circuit Breaker abre o el Retry se agota, se retorna un fallback estático garantizando disponibilidad (Resilience4j) |
 | **DTO Pattern** | Separación entre objetos de transferencia y entidades de dominio |
 | **Feign Client** | Comunicación declarativa HTTP con otros microservicios |
 | **Factory Method** | Creación centralizada y validada de entidades de dominio |
@@ -211,7 +209,7 @@ El microservicio implementa **Clean Architecture** con enfoque **Hexagonal (Port
                        │
 ┌──────────────────────▼──────────────────────────┐
 │               INFRASTRUCTURE                    │
-│  (MongoDB / Groq + Gemini Adapters / Feign / JWT) │
+│  (MongoDB / GroqAdapter / Feign Clients / JWT)    │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -661,8 +659,7 @@ El microservicio se comunica con servicios externos a través de **Feign Clients
 |:------------------------|:------------------------|:----------------|:-----------------|
 | **profile-service** | Feign Client HTTP | `GET /profiles/{studentId}` | Obtener perfil académico y disponibilidad horaria del estudiante |
 | **planning-service** | Feign Client HTTP | `GET /planning/prioritization` + `GET /planning/distribution` | Obtener tareas priorizadas (AIB-22) y bloques del plan semanal activo (AIB-24/AIB-30) |
-| **Groq API** | HTTP REST (Groq Cloud) | `POST /chat/completions` | Proveedor LLM **primario** (`llama-3.3-70b-versatile`). Circuit Breaker activo; si falla, delega a Gemini. |
-| **Gemini API** | HTTP REST (Google AI) | `POST /{model}:generateContent` | Proveedor LLM **secundario** (`gemini-1.5-flash`). Fallback automático desde Groq. Si también falla, responde con recomendación estática. |
+| **Groq API** | HTTP REST (Groq Cloud) | `POST /chat/completions` | Proveedor LLM único (`llama-3.3-70b-versatile`). Circuit Breaker activo; si falla, responde con fallback estático. |
 
 </div>
 
@@ -693,10 +690,8 @@ public interface PlanningFeignClient {
 Todas las llamadas a los proveedores de IA están protegidas con **Circuit Breaker + Fallback en cadena**:
 
 ```
-GroqAdapter (Primary)
-  └─ Circuit Breaker groqAI  →  fallbackToGemini()
-       └─ GeminiAdapter
-             └─ Circuit Breaker geminiAI  →  fallbackRecommendation() [estático]
+GroqAdapter
+  └─ Circuit Breaker groqAI  →  fallbackRecommendation() [estático]
 ```
 
 Configuración habilitada:
@@ -1048,17 +1043,11 @@ superOscholar-recommendation-service/
 │   │   │           └── 📁 out/
 │   │   │               ├── 📁 api/                 # Adaptadores LLM
 │   │   │               │   ├── 📁 groq/
-│   │   │               │   │   ├── GroqAdapter.java           # Primario (Circuit Breaker → Gemini fallback)
+│   │   │               │   │   ├── GroqAdapter.java           # Único proveedor de IA (Circuit Breaker → fallback estático)
 │   │   │               │   │   └── 📁 dto/
-│   │   │               │   └── 📁 gemini/
-│   │   │               │       ├── GeminiAdapter.java         # Secundario (Circuit Breaker → estático fallback)
-│   │   │               │       └── 📁 dto/
-│   │   │               │           ├── GeminiRequest.java
-│   │   │               │           └── GeminiResponse.java
 │   │   │               ├── 📁 db/                  # Adaptadores MongoDB
 │   │   │               └── 📁 feign/               # Clientes Feign
 │   │   │                   ├── GroqAIClient.java
-│   │   │                   ├── GeminiAIClient.java
 │   │   │                   ├── PlanningFeignClient.java
 │   │   │                   ├── ProfileFeignClient.java
 │   │   │                   ├── ProfileFeignClientAdapter.java
@@ -1332,10 +1321,6 @@ JWT_SECRET=your_jwt_secret_key_here
 GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
 
-# Proveedor de IA secundario / fallback (Gemini)
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-1.5-flash
-
 # URLs de microservicios internos
 PLANNING_SERVICE_URL=http://planning-service:8087
 PROFILE_SERVICE_URL=http://profile-service:8081
@@ -1356,12 +1341,6 @@ groq:
     key: "${GROQ_API_KEY:}"
     model: "${GROQ_MODEL:llama-3.3-70b-versatile}"
 
-gemini:
-  api:
-    base-url: "https://generativelanguage.googleapis.com/v1beta/models"
-    key: "${GEMINI_API_KEY:}"
-    model: "${GEMINI_MODEL:gemini-1.5-flash}"
-
 feign:
   client:
     config:
@@ -1369,9 +1348,6 @@ feign:
         connectTimeout: 5000
         readTimeout: 15000
       groqAiClient:
-        connectTimeout: 5000
-        readTimeout: 20000
-      geminiAiClient:
         connectTimeout: 5000
         readTimeout: 20000
 ```
@@ -1435,8 +1411,8 @@ feign:
       <td>Analiza el plan semanal activo, detecta días sobrecargados (>80 % capacidad) y propone hasta 5 movimientos de tareas entre días para optimizar la semana. Las sugerencias nunca se aplican sin confirmación explícita (RN-04).</td>
     </tr>
     <tr>
-      <td><strong>Integración dual IA (Groq + Gemini)</strong></td>
-      <td>Groq actúa como proveedor primario (Circuit Breaker + Retry). Si falla, Gemini toma el relevo automáticamente (fallback en cadena). Si Gemini también falla, se retorna una recomendación estática garantizando disponibilidad.</td>
+      <td><strong>Integración IA (Groq)</strong></td>
+      <td>Groq es el único proveedor de IA (Circuit Breaker + Retry). Si falla, se retorna una recomendación estática garantizando disponibilidad.</td>
     </tr>
     <tr>
       <td><strong>Registro de Actividad Estudiantil</strong></td>

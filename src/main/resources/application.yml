@@ -23,14 +23,13 @@ springdoc:
     enabled: true
     path: /swagger-ui.html
     display-request-duration: true
+    try-it-out-enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  default-produces-media-type: application/json
 
 jwt:
   secret: ${JWT_SECRET:dev-secret}
-
-# --- Selector de proveedor de IA ---
-# Valor esperado: "groq"
-ai:
-  provider: "${AI_PROVIDER:groq}"
 
 # --- Configuración Groq ---
 groq:
@@ -39,12 +38,12 @@ groq:
     key: "${GROQ_API_KEY:}"
     model: "${GROQ_MODEL:llama-3.3-70b-versatile}"
 
-# --- Configuración Gemini ---
-gemini:
+# --- Configuración Mistral AI ---
+mistral:
   api:
-    base-url: "https://generativelanguage.googleapis.com/v1beta/models"
-    key: "${GEMINI_API_KEY:}"
-    model: "${GEMINI_MODEL:gemini-1.5-flash}"
+    base-url: "https://api.mistral.ai/v1"
+    key: "${MISTRAL_API_KEY:}"
+    model: "${MISTRAL_MODEL:mistral-small-latest}"
 
 # --- URLs de microservicios internos ---
 services:
@@ -66,7 +65,7 @@ feign:
         connectTimeout: 5000
         readTimeout: 20000
 
-      geminiAiClient:
+      mistralAiClient:
         connectTimeout: 5000
         readTimeout: 20000
 
@@ -90,7 +89,7 @@ resilience4j:
         permittedNumberOfCallsInHalfOpenState: 3
         slidingWindowType: COUNT_BASED
         minimumNumberOfCalls: 5
-      geminiAI:
+      mistralAI:
         registerHealthIndicator: true
         slidingWindowSize: 10
         failureRateThreshold: 50
@@ -108,7 +107,7 @@ resilience4j:
           - feign.FeignException
           - java.io.IOException
           - java.net.SocketTimeoutException
-      geminiAI:
+      mistralAI:
         maxAttempts: 3
         waitDuration: 2s
         retryExceptions:
@@ -120,7 +119,7 @@ resilience4j:
     instances:
       groqAI:
         timeoutDuration: 20s
-      geminiAI:
+      mistralAI:
         timeoutDuration: 20s
 
 management:

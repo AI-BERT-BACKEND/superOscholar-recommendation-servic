@@ -1,9 +1,9 @@
 package com.aibert.dosw.infrastructure.adapters.out.api.groq;
 
 import com.aibert.dosw.domain.model.Recommendation;
-import com.aibert.dosw.infrastructure.adapters.out.api.gemini.GeminiAdapter;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequest;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponse;
+import com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapter;
 import com.aibert.dosw.infrastructure.adapters.out.feign.GroqAIClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -12,7 +12,6 @@ import org.mockito.ArgumentCaptor;
 import java.lang.reflect.Method;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,9 +25,9 @@ class GroqAdapterTest {
     @Test
     void generateRecommendation_withValidJson_buildsRecommendationFromGroqResponse() {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        MistralAdapter mistralAdapter = mock(MistralAdapter.class);
         GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
-                geminiAdapter);
+                mistralAdapter);
 
         GroqResponse response = responseWithContent("""
                 {
@@ -65,9 +64,9 @@ class GroqAdapterTest {
     @Test
     void generateRecommendation_withMalformedJson_returnsTechnicalFallback() {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        MistralAdapter mistralAdapter = mock(MistralAdapter.class);
         GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
-                geminiAdapter);
+                mistralAdapter);
 
         when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class)))
                 .thenReturn(responseWithContent("{not-json"));
@@ -83,9 +82,9 @@ class GroqAdapterTest {
     @Test
     void generateRecommendation_withEmptyChoices_returnsDefaultsFromParser() {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        MistralAdapter mistralAdapter = mock(MistralAdapter.class);
         GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
-                geminiAdapter);
+                mistralAdapter);
 
         GroqResponse emptyResponse = new GroqResponse();
         when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class))).thenReturn(emptyResponse);
@@ -100,9 +99,9 @@ class GroqAdapterTest {
     @Test
     void generateRecommendation_withNullMessageContent_returnsDefaultsFromParser() {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        MistralAdapter mistralAdapter = mock(MistralAdapter.class);
         GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
-                geminiAdapter);
+                mistralAdapter);
 
         GroqResponse.Message message = new GroqResponse.Message();
         message.setRole("assistant");
@@ -122,30 +121,31 @@ class GroqAdapterTest {
     }
 
     @Test
-    void fallbackToGemini_canBeInvokedAndDelegatesToGeminiAdapter() throws Exception {
+    void fallbackToMistral_delegatesToMistralAdapter() throws Exception {
         GroqAIClient groqAIClient = mock(GroqAIClient.class);
-        GeminiAdapter geminiAdapter = mock(GeminiAdapter.class);
+        MistralAdapter mistralAdapter = mock(MistralAdapter.class);
         GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
-                geminiAdapter);
+                mistralAdapter);
 
-        Recommendation geminiResult = Recommendation.builder()
+        Recommendation mistralResult = Recommendation.builder()
                 .studentId("22")
-                .confidenceScore(0.8)
+                .confidenceScore(0.75)
                 .recommendationType("GENERAL")
+                .motivationalMessage("Mistral responde")
                 .recommendations(List.of())
                 .build();
-        when(geminiAdapter.generateRecommendation(eq("22"), any(), eq("GENERAL"))).thenReturn(geminiResult);
+        when(mistralAdapter.generateRecommendation("22", "ctx", "GENERAL")).thenReturn(mistralResult);
 
         Method method = GroqAdapter.class.getDeclaredMethod(
-                "fallbackToGemini", String.class, String.class, String.class, Throwable.class);
+                "fallbackToMistral", String.class, String.class, String.class, Throwable.class);
         method.setAccessible(true);
 
-        Recommendation fallback = (Recommendation) method.invoke(
-                adapter, "22", "ctx", "GENERAL", new RuntimeException("boom"));
+        Recommendation result = (Recommendation) method.invoke(
+                adapter, "22", "ctx", "GENERAL", new RuntimeException("groq down"));
 
-        assertEquals("22", fallback.getStudentId());
-        assertEquals(0.8, fallback.getConfidenceScore());
-        assertDoesNotThrow(fallback::toString);
+        assertEquals("22", result.getStudentId());
+        assertEquals(0.75, result.getConfidenceScore());
+        verify(mistralAdapter).generateRecommendation("22", "ctx", "GENERAL");
     }
 
     private GroqResponse responseWithContent(String content) {

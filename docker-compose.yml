@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8086:8086"
+      - "1505:8086"
 
     environment:
       SERVER_PORT: ${SERVER_PORT}
