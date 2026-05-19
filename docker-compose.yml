@@ -37,6 +37,8 @@ services:
       AI_PROVIDER: ${AI_PROVIDER}
       GROQ_API_KEY: ${GROQ_API_KEY}
       GROQ_MODEL: ${GROQ_MODEL}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+      MISTRAL_MODEL: ${MISTRAL_MODEL}
       JWT_SECRET: ${JWT_SECRET}
 
     depends_on:
