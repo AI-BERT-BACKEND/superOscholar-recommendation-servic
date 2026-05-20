@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8086}
+  port: 1505
 
 
 
@@ -28,6 +28,11 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
       retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        delivery.timeout.ms: 120000
+        request.timeout.ms: 30000
 
 springdoc:
   api-docs:
@@ -49,28 +54,28 @@ jwt:
 groq:
   api:
     base-url: "https://api.groq.com/openai/v1"
-    key: "${GROQ_API_KEY}"
+    key: "${GROQ_API_KEY:}"
     model: "${GROQ_MODEL:llama-3.3-70b-versatile}"
 
 # --- Configuración Mistral AI ---
 mistral:
   api:
     base-url: "https://api.mistral.ai/v1"
-    key: "${MISTRAL_API_KEY}"
+    key: "${MISTRAL_API_KEY:}"
     model: "${MISTRAL_MODEL:mistral-small-latest}"
 
 # --- URLs de microservicios internos ---
 services:
   planning:
-    url: "${PLANNING_SERVICE_URL:http://localhost:8087}"
+    url: "${PLANNING_SERVICE_URL:http://localhost:1504}"
 
   profile:
-    url: "${PROFILE_SERVICE_URL:http://localhost:8081}"
+    url: "${PROFILE_SERVICE_URL:http://localhost:1505}"
 
 # --- Feign Client Timeouts ---
 feign:
   engineplanning-service:
-    url: ${FEIGN_ENGINEPLANNING_SERVICE_URL:http://localhost:8087}
+    url: ${FEIGN_ENGINEPLANNING_SERVICE_URL:http://localhost:1504}
 
   client:
     config:
@@ -166,7 +171,8 @@ spring:
       on-profile: local
 
   autoconfigure:
-    exclude: ${SPRING_AUTOCONFIGURE_EXCLUDE:org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration}
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
 
   data:
     mongodb:

@@ -109,7 +109,7 @@ No se limita a listar tareas; analiza el contexto académico completo del estudi
 
 | Microservicio | Puerto | Responsabilidad |
 |---|---|---|
-| recommendation-service | 8086 | Motor de recomendaciones e IA |
+| recommendation-service | 1505 | Motor de recomendaciones e IA |
 
 ---
 
@@ -1097,7 +1097,7 @@ superOscholar-recommendation-service/
 - **Maven 3.8+**
 - **Docker** y **Docker Compose** (opcional)
 - **MongoDB Atlas** (o MongoDB local)
-- **Clave de API de Groq** (`GROQ_API_KEY`)
+- **Clave de API de Groq** (`GROQ_API_KEY`) o **Mistral** (`MISTRAL_API_KEY`) para recomendaciones con IA
 
 ### 🛠️ Opción 1: Ejecución Local (Maven)
 
@@ -1113,9 +1113,9 @@ cp .env.example .env
 mvn spring-boot:run
 ```
 
-📍 **URL Local:** `http://localhost:8086`
-📚 **Swagger UI:** `http://localhost:8086/swagger-ui.html`
-📄 **API Docs:** `http://localhost:8086/v3/api-docs`
+📍 **URL Local:** `http://localhost:1505`
+📚 **Swagger UI:** `http://localhost:1505/swagger-ui.html`
+📄 **API Docs:** `http://localhost:1505/v3/api-docs`
 
 ---
 
@@ -1136,7 +1136,7 @@ docker-compose logs -f
 docker-compose down
 ```
 
-📍 **URL Docker:** `http://localhost:8086`
+📍 **URL Docker:** `http://localhost:1505`
 
 ---
 
@@ -1147,12 +1147,12 @@ docker-compose down
 docker build -t recommendation-service .
 
 # 2. Ejecutar el contenedor
-docker run -p 8086:8086 \
+docker run -p 1505:1505 \
   -e MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/recommendationdb \
   -e JWT_SECRET=your_jwt_secret \
   -e GROQ_API_KEY=your_groq_key \
-  -e PLANNING_SERVICE_URL=http://planning-service:8087 \
-  -e PROFILE_SERVICE_URL=http://profile-service:8081 \
+  -e PLANNING_SERVICE_URL=http://planning-service:1504 \
+  -e PROFILE_SERVICE_URL=http://profile-service:1505 \
   recommendation-service
 ```
 
@@ -1308,9 +1308,6 @@ jobs:
 ## 15. 🔐 Variables de Entorno
 
 ```bash
-# Servidor
-SERVER_PORT=8086
-
 # Base de datos
 MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net/recommendationdb
 
@@ -1321,9 +1318,14 @@ JWT_SECRET=your_jwt_secret_key_here
 GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
 
+# Proveedor alterno de IA (Mistral)
+MISTRAL_API_KEY=your_mistral_api_key_here
+MISTRAL_MODEL=mistral-small-latest
+
 # URLs de microservicios internos
-PLANNING_SERVICE_URL=http://planning-service:8087
-PROFILE_SERVICE_URL=http://profile-service:8081
+PLANNING_SERVICE_URL=http://planning-service:1504
+PROFILE_SERVICE_URL=http://profile-service:1505
+FEIGN_ENGINEPLANNING_SERVICE_URL=http://planning-service:1504
 
 # Spring Profiles
 SPRING_PROFILES_ACTIVE=dev
@@ -1333,7 +1335,7 @@ SPRING_PROFILES_ACTIVE=dev
 
 ```yaml
 server:
-  port: ${SERVER_PORT:8086}
+  port: 1505
 
 groq:
   api:
@@ -1341,7 +1343,19 @@ groq:
     key: "${GROQ_API_KEY:}"
     model: "${GROQ_MODEL:llama-3.3-70b-versatile}"
 
+mistral:
+  api:
+    base-url: "https://api.mistral.ai/v1"
+    key: "${MISTRAL_API_KEY:}"
+    model: "${MISTRAL_MODEL:mistral-small-latest}"
+
+services:
+  planning:
+    url: "${PLANNING_SERVICE_URL:http://localhost:1504}"
+
 feign:
+  engineplanning-service:
+    url: ${FEIGN_ENGINEPLANNING_SERVICE_URL:http://localhost:1504}
   client:
     config:
       default:
@@ -1793,8 +1807,8 @@ recommendation-service/
 ```bash
 mvn spring-boot:run
 ```
-📍 **URL Local:** `http://localhost:8086` (o el puerto configurado)  
-📚 **Documentación API (Swagger):** `http://localhost:8086/swagger-ui.html`
+📍 **URL Local:** `http://localhost:1505` (o el puerto configurado)  
+📚 **Documentación API (Swagger):** `http://localhost:1505/swagger-ui.html`
 
 ### 🐳 Opción 2: Ejecución con Docker (Si se incluye Dockerfile)
 
@@ -1807,14 +1821,16 @@ docker-compose up --build -d
 El proyecto tiene capacidad para desplegarse mediante GitHub Actions hacia Azure App Service o un entorno contenedorizado en la nube.
 Se definen perfiles `local`, `qa` y `prod` en `application.yml` para gestionar la conexión a MongoDB. Variables clave:
 
-- `SERVER_PORT`
 - `MONGO_URI`
 - `AI_PROVIDER`
 - `GROQ_API_KEY`
 - `GROQ_MODEL`
+- `MISTRAL_API_KEY`
+- `MISTRAL_MODEL`
 - `JWT_SECRET`
 - `PLANNING_SERVICE_URL`
 - `PROFILE_SERVICE_URL`
+- `FEIGN_ENGINEPLANNING_SERVICE_URL`
 
 ## 13. 🤝 Contribuciones
 

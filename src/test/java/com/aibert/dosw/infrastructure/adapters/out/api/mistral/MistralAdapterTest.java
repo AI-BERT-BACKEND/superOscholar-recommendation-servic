@@ -1,6 +1,7 @@
 package com.aibert.dosw.infrastructure.adapters.out.api.mistral;
 
 import com.aibert.dosw.domain.model.Recommendation;
+import com.aibert.dosw.infrastructure.adapters.in.rest.dto.ReorganizationSuggestionDTO;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequest;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponse;
 import com.aibert.dosw.infrastructure.adapters.out.feign.MistralAIClient;
@@ -9,10 +10,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Method;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -137,6 +140,71 @@ class MistralAdapterTest {
         assertEquals("GENERAL", fallback.getRecommendationType());
         assertEquals(1, fallback.getRecommendations().size());
         assertDoesNotThrow(fallback::toString);
+    }
+
+    @Test
+    void generateDailyPlanSuggestions_withValidJson_appliesNormalizationAndLimit() {
+        MistralAIClient mistralAIClient = mock(MistralAIClient.class);
+        MistralAdapter adapter = new MistralAdapter(mistralAIClient, "test-mistral-key", "mistral-small-latest",
+                new ObjectMapper());
+        LocalDate currentDate = LocalDate.of(2026, 5, 20);
+
+        String longJustification = "y".repeat(310);
+        GroqResponse response = responseWithContent("""
+                {
+                  "suggestions": [
+                    {"taskId":"t1","title":"T1","toDay":"2026-05-18","justification":"j1"},
+                    {"taskId":"t2","title":"T2","toDay":"","justification":"j2"},
+                    {"taskId":"t3","title":"T3","toDay":"invalid","justification":"j3"},
+                    {"taskId":"t4","title":"T4","toDay":"2026-05-23","justification":"j4"},
+                    {"taskId":"t5","title":"T5","toDay":"2026-05-24","justification":"%s"},
+                    {"taskId":"t6","title":"T6","toDay":"2026-05-25","justification":"j6"}
+                  ]
+                }
+                """.formatted(longJustification));
+        when(mistralAIClient.chatCompletion(eq("Bearer test-mistral-key"), any(GroqRequest.class))).thenReturn(response);
+
+        List<ReorganizationSuggestionDTO> result = adapter.generateDailyPlanSuggestions("20", "context", currentDate);
+
+        assertEquals(5, result.size());
+        assertEquals(currentDate.plusDays(2), result.get(0).getToDay());
+        assertEquals(currentDate.plusDays(2), result.get(1).getToDay());
+        assertEquals(currentDate.plusDays(2), result.get(2).getToDay());
+        assertEquals(LocalDate.of(2026, 5, 23), result.get(3).getToDay());
+        assertEquals(300, result.get(4).getJustification().length());
+    }
+
+    @Test
+    void generateDailyPlanSuggestions_withMalformedJson_returnsEmptyList() {
+        MistralAIClient mistralAIClient = mock(MistralAIClient.class);
+        MistralAdapter adapter = new MistralAdapter(mistralAIClient, "test-mistral-key", "mistral-small-latest",
+                new ObjectMapper());
+
+        when(mistralAIClient.chatCompletion(eq("Bearer test-mistral-key"), any(GroqRequest.class)))
+                .thenReturn(responseWithContent("{bad-json"));
+
+        List<ReorganizationSuggestionDTO> result = adapter.generateDailyPlanSuggestions("20", "context",
+                LocalDate.of(2026, 5, 20));
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void fallbackDailyPlanStatic_returnsEmptyList() throws Exception {
+        MistralAIClient mistralAIClient = mock(MistralAIClient.class);
+        MistralAdapter adapter = new MistralAdapter(mistralAIClient, "test-mistral-key", "mistral-small-latest",
+                new ObjectMapper());
+
+        Method method = MistralAdapter.class.getDeclaredMethod(
+                "fallbackDailyPlanStatic", String.class, String.class, LocalDate.class, Throwable.class);
+        method.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        List<ReorganizationSuggestionDTO> result = (List<ReorganizationSuggestionDTO>) method.invoke(
+                adapter, "20", "ctx", LocalDate.of(2026, 5, 20), new RuntimeException("mistral down"));
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     private GroqResponse responseWithContent(String content) {
