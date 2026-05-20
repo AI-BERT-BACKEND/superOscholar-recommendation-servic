@@ -33,10 +33,10 @@ services:
       - KAFKA_NODE_ID=1
       - KAFKA_PROCESS_ROLES=broker,controller
       - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
       - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
       - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
@@ -45,7 +45,7 @@ services:
       - recommendationservic_kafka_data:/bitnami/kafka
 
     healthcheck:
-      test: /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+      test: /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,20 +59,20 @@ services:
       - .env
 
     ports:
-      - "1505:8086"
+      - "1505:1505"
 
     environment:
       SERVER_PORT: ${SERVER_PORT}
       MONGO_URI: ${MONGO_URI}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       SPRING_AUTOCONFIGURE_EXCLUDE: ${SPRING_AUTOCONFIGURE_EXCLUDE}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       AI_PROVIDER: ${AI_PROVIDER}
       GROQ_API_KEY: ${GROQ_API_KEY}
-      GROQ_MODEL: ${GROQ_MODEL:llama-3.3-70b-versatile}
+      GROQ_MODEL: ${GROQ_MODEL}
       MISTRAL_API_KEY: ${MISTRAL_API_KEY}
-      MISTRAL_MODEL: ${MISTRAL_MODEL:mistral-small-latest}
+      MISTRAL_MODEL: ${MISTRAL_MODEL}
       JWT_SECRET: ${JWT_SECRET}
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
     depends_on:
       mongo:
