@@ -1,6 +1,7 @@
 package com.aibert.dosw.infrastructure.adapters.out.api.groq;
 
 import com.aibert.dosw.domain.model.Recommendation;
+import com.aibert.dosw.infrastructure.adapters.in.rest.dto.ReorganizationSuggestionDTO;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequest;
 import com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponse;
 import com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapter;
@@ -10,9 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Method;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -146,6 +149,101 @@ class GroqAdapterTest {
         assertEquals("22", result.getStudentId());
         assertEquals(0.75, result.getConfidenceScore());
         verify(mistralAdapter).generateRecommendation("22", "ctx", "GENERAL");
+    }
+
+    @Test
+    void generateDailyPlanSuggestions_withValidJson_appliesNormalizationAndLimit() {
+        GroqAIClient groqAIClient = mock(GroqAIClient.class);
+        MistralAdapter mistralAdapter = mock(MistralAdapter.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
+                mistralAdapter);
+        LocalDate currentDate = LocalDate.of(2026, 5, 20);
+
+        String longJustification = "x".repeat(320);
+        GroqResponse response = responseWithContent("""
+                {
+                  "suggestions": [
+                    {"taskId":"t1","title":"T1","toDay":"2026-05-19","justification":"j1"},
+                    {"taskId":"t2","title":"T2","toDay":"","justification":"j2"},
+                    {"taskId":"t3","title":"T3","toDay":"bad-date","justification":"j3"},
+                    {"taskId":"t4","title":"T4","toDay":"2026-05-23","justification":"j4"},
+                    {"taskId":"t5","title":"T5","toDay":"2026-05-24","justification":"%s"},
+                    {"taskId":"t6","title":"T6","toDay":"2026-05-25","justification":"j6"}
+                  ]
+                }
+                """.formatted(longJustification));
+        when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class))).thenReturn(response);
+
+        List<ReorganizationSuggestionDTO> result = adapter.generateDailyPlanSuggestions("10", "context", currentDate);
+
+        assertEquals(5, result.size());
+        assertEquals(currentDate.plusDays(2), result.get(0).getToDay());
+        assertEquals(currentDate.plusDays(2), result.get(1).getToDay());
+        assertEquals(currentDate.plusDays(2), result.get(2).getToDay());
+        assertEquals(LocalDate.of(2026, 5, 23), result.get(3).getToDay());
+        assertEquals(300, result.get(4).getJustification().length());
+    }
+
+    @Test
+    void generateDailyPlanSuggestions_withNonArraySuggestions_returnsEmptyList() {
+        GroqAIClient groqAIClient = mock(GroqAIClient.class);
+        MistralAdapter mistralAdapter = mock(MistralAdapter.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
+                mistralAdapter);
+
+        when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class)))
+                .thenReturn(responseWithContent("{\"suggestions\":{\"a\":1}}"));
+
+        List<ReorganizationSuggestionDTO> result = adapter.generateDailyPlanSuggestions("10", "context",
+                LocalDate.of(2026, 5, 20));
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void generateDailyPlanSuggestions_withMalformedJson_returnsEmptyList() {
+        GroqAIClient groqAIClient = mock(GroqAIClient.class);
+        MistralAdapter mistralAdapter = mock(MistralAdapter.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
+                mistralAdapter);
+
+        when(groqAIClient.chatCompletion(eq("Bearer test-key"), any(GroqRequest.class)))
+                .thenReturn(responseWithContent("{bad-json"));
+
+        List<ReorganizationSuggestionDTO> result = adapter.generateDailyPlanSuggestions("10", "context",
+                LocalDate.of(2026, 5, 20));
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void fallbackDailyPlanToMistral_delegatesToMistralAdapter() throws Exception {
+        GroqAIClient groqAIClient = mock(GroqAIClient.class);
+        MistralAdapter mistralAdapter = mock(MistralAdapter.class);
+        GroqAdapter adapter = new GroqAdapter(groqAIClient, "test-key", "llama-test", new ObjectMapper(),
+                mistralAdapter);
+
+        LocalDate date = LocalDate.of(2026, 5, 20);
+        List<ReorganizationSuggestionDTO> expected = List.of(ReorganizationSuggestionDTO.builder()
+                .taskId("x")
+                .title("t")
+                .fromDay(date)
+                .toDay(date.plusDays(1))
+                .justification("ok")
+                .build());
+        when(mistralAdapter.generateDailyPlanSuggestions("10", "ctx", date)).thenReturn(expected);
+
+        Method method = GroqAdapter.class.getDeclaredMethod(
+                "fallbackDailyPlanToMistral", String.class, String.class, LocalDate.class, Throwable.class);
+        method.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        List<ReorganizationSuggestionDTO> result = (List<ReorganizationSuggestionDTO>) method.invoke(
+                adapter, "10", "ctx", date, new RuntimeException("groq down"));
+
+        assertFalse(result.isEmpty());
+        assertEquals("x", result.get(0).getTaskId());
+        verify(mistralAdapter).generateDailyPlanSuggestions("10", "ctx", date);
     }
 
     private GroqResponse responseWithContent(String content) {

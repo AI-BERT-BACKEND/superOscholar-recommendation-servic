@@ -28,16 +28,33 @@ public class NotificationKafkaProducer implements NotificationEventPort {
 
     @Override
     public void sendNotification(NotificationEvent event) {
+        if (event == null) {
+            log.warn("Notification event is null. Skipping Kafka send.");
+            return;
+        }
+
         try {
             String payload = objectMapper.writeValueAsString(event);
             String key = event.getUserId() != null ? String.valueOf(event.getUserId()) : "unknown";
-            kafkaTemplate.send(notificationsTopic, key, payload);
-            log.info("Notificación enviada al tópico [{}] para usuario [{}] tipo [{}]",
-                    notificationsTopic, event.getUserId(), event.getType());
+
+            kafkaTemplate.send(notificationsTopic, key, payload).whenComplete((result, ex) -> {
+                if (ex != null) {
+                    log.error("Kafka send failed. topic=[{}], userId=[{}], type=[{}], reason=[{}]",
+                            notificationsTopic, event.getUserId(), event.getType(), ex.getMessage(), ex);
+                    return;
+                }
+
+                log.info("Kafka send ok. topic=[{}], partition=[{}], offset=[{}], userId=[{}], type=[{}]",
+                        result.getRecordMetadata().topic(),
+                        result.getRecordMetadata().partition(),
+                        result.getRecordMetadata().offset(),
+                        event.getUserId(),
+                        event.getType());
+            });
         } catch (JsonProcessingException e) {
-            log.error("Error serializando notificación para usuario [{}]: {}", event.getUserId(), e.getMessage());
+            log.error("Kafka payload serialization failed for userId=[{}]: {}", event.getUserId(), e.getMessage(), e);
         } catch (Exception e) {
-            log.error("Error enviando notificación Kafka para usuario [{}]: {}", event.getUserId(), e.getMessage());
+            log.error("Unexpected Kafka send setup error for userId=[{}]: {}", event.getUserId(), e.getMessage(), e);
         }
     }
 }
