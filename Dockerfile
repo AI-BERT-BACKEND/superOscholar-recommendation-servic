@@ -27,7 +27,7 @@ USER appuser
 
 COPY --from=builder /app/target/*.jar app.jar
 
-EXPOSE 8086
+EXPOSE 1505
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD sh -c 'wget -qO- "http://localhost:${SERVER_PORT:-8086}/actuator/health" || exit 1'

@@ -1,0 +1,3 @@
+feign:
+  engineplanning-service:
+    url: "http://localhost:8087"

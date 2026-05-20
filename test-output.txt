@@ -1,0 +1,370 @@
+Picked up JAVA_TOOL_OPTIONS: -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------< com.aibert.dosw:recommendation-service >---------------
+[INFO] Building recommendation-service 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco:0.8.11:prepare-agent (default) @ recommendation-service ---
+[INFO] argLine set to -javaagent:C:\\Users\\ASUS\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.11\\org.jacoco.agent-0.8.11-runtime.jar=destfile=e:\\DOSW\\superOscholar-recommendation-servic\\target\\jacoco.exec
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ recommendation-service ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.8.1:compile (default-compile) @ recommendation-service ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ recommendation-service ---
+[INFO] skip non existing resourceDirectory e:\DOSW\superOscholar-recommendation-servic\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.8.1:testCompile (default-testCompile) @ recommendation-service ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 8 source files to e:\DOSW\superOscholar-recommendation-servic\target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ recommendation-service ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+Picked up JAVA_TOOL_OPTIONS: -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8
+[INFO] Running com.aibert.dosw.application.usecase.GenerateDailyPlanUseCaseImplTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build what is described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\ASUS\.m2\repository\net\bytebuddy\byte-buddy-agent\1.15.11\byte-buddy-agent-1.15.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+19:44:58.567 [main] WARN com.aibert.dosw.application.usecase.GenerateDailyPlanUseCaseImpl -- IA no disponible para plan diario de studentId=s1, usando fallback determinista: AI down
+19:44:58.658 [main] INFO com.aibert.dosw.application.usecase.GenerateDailyPlanUseCaseImpl -- IA generó 5 sugerencia(s) de plan diario para studentId=s1
+19:44:58.678 [main] INFO com.aibert.dosw.application.usecase.GenerateDailyPlanUseCaseImpl -- IA generó 0 sugerencia(s) de plan diario para studentId=s1
+19:44:58.795 [main] INFO com.aibert.dosw.application.usecase.GenerateDailyPlanUseCaseImpl -- IA generó 0 sugerencia(s) de plan diario para studentId=s1
+19:44:58.837 [main] INFO com.aibert.dosw.application.usecase.GenerateDailyPlanUseCaseImpl -- IA generó 1 sugerencia(s) de plan diario para studentId=s1
+19:44:58.879 [main] WARN com.aibert.dosw.application.usecase.GenerateDailyPlanUseCaseImpl -- IA no disponible para plan diario de studentId=s1, usando fallback determinista: AI unavailable
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.096 s -- in com.aibert.dosw.application.usecase.GenerateDailyPlanUseCaseImplTest
+[INFO] Running com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImplTest
+19:44:59.559 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.630 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- FA-02: No hay tareas para recomendación de CARGA. Fallback a GENERAL.
+19:44:59.635 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.661 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.687 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.737 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.0, combinado=0.34
+19:44:59.762 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- FA-02: No hay tareas en el contexto para recomendación de CARGA. Fallback a GENERAL.
+19:44:59.763 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.785 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.810 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.827 [main] WARN com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- No se pudo obtener estilo de aprendizaje para studentId=s1: profile down
+19:44:59.827 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.857 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.875 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.887 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- FA-02: No hay tareas en el contexto para recomendación de CARGA. Fallback a GENERAL.
+19:44:59.887 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.908 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.71, ia=0.8, combinado=0.75
+19:44:59.925 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.939 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.34, ia=0.75, combinado=0.5
+19:44:59.959 [main] INFO com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImpl -- ConfidenceScore para studentId=s1: interno=0.0, ia=0.7, combinado=0.28
+[ERROR] Tests run: 21, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 1.020 s <<< FAILURE! -- in com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImplTest
+[ERROR] com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImplTest.execute_cargaTypeNoContextServiceThrows_fallsBackToGeneral -- Time elapsed: 0.034 s <<< ERROR!
+java.lang.RuntimeException: down
+	at com.aibert.dosw.application.usecase.GenerateRecommendationUseCaseImplTest.execute_cargaTypeNoContextServiceThrows_fallsBackToGeneral(GenerateRecommendationUseCaseImplTest.java:308)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.aibert.dosw.application.usecase.GenerateWeeklyReorganizationUseCaseImplTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.220 s -- in com.aibert.dosw.application.usecase.GenerateWeeklyReorganizationUseCaseImplTest
+[INFO] Running com.aibert.dosw.infrastructure.adapters.in.rest.RecommendationControllerTest
+19:45:01.791 [main] INFO org.hibernate.validator.internal.util.Version -- HV000001: Hibernate Validator 8.0.2.Final
+19:45:04.995 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:04.995 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:05.013 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 16 ms
+19:45:05.993 [main] WARN com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- UnreadableBody path=/api/v1/recommendations detail=JSON parse error: Unexpected character ('n' (code 110)): was expecting double-quote to start field name
+19:45:06.288 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:06.288 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:06.290 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 2 ms
+19:45:06.901 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:06.901 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:06.901 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.003 [main] WARN com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- ValidationError path=/api/v1/recommendations errors=[studentId: El studentId es obligatorio]
+19:45:07.074 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.075 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.075 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.106 [main] ERROR com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- DatabaseError errorId=449876c1-4162-4bd7-be75-c4c5900a99b1 method=GET path=/api/v1/recommendations/weekly/s1
+org.springframework.dao.DataAccessResourceFailureException: DB down
+	at com.aibert.dosw.infrastructure.adapters.in.rest.RecommendationController.getWeeklyReorganization(RecommendationController.java:94)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:257)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:190)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:986)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:891)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1088)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:978)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at org.springframework.test.web.servlet.TestDispatcherServlet.service(TestDispatcherServlet.java:72)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.springframework.mock.web.MockFilterChain$ServletFilterProxy.doFilter(MockFilterChain.java:165)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.test.web.servlet.MockMvc.perform(MockMvc.java:201)
+	at com.aibert.dosw.infrastructure.adapters.in.rest.RecommendationControllerTest.getWeeklyPlan_serviceThrowsDataAccessException_returns503(RecommendationControllerTest.java:286)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:767)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$8(TestMethodTestDescriptor.java:217)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:213)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:138)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:68)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:156)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:198)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:169)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:93)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:58)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:141)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:57)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+19:45:07.163 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.163 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.163 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.264 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.265 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.265 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.310 [main] INFO com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- InsufficientHistory path=/api/v1/recommendations message=Historial insuficiente
+19:45:07.359 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.359 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.360 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.421 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.421 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.422 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+19:45:07.501 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.502 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.502 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.566 [main] WARN com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- TypeMismatch path=/api/v1/recommendations/daily/s1 param=currentDate
+19:45:07.623 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.626 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.628 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+19:45:07.635 [main] WARN com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- TypeMismatch path=/api/v1/recommendations/weekly/s1 param=currentDate
+19:45:07.690 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.690 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.690 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.729 [main] ERROR com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- UnhandledException errorId=47e735f3-1807-4be8-be28-20f9eb9bde13 method=POST path=/api/v1/recommendations
+java.lang.RuntimeException: Unexpected error
+	at com.aibert.dosw.infrastructure.adapters.in.rest.RecommendationController.generateRecommendations(RecommendationController.java:51)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:257)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:190)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:986)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:891)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1088)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:978)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at org.springframework.test.web.servlet.TestDispatcherServlet.service(TestDispatcherServlet.java:72)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.springframework.mock.web.MockFilterChain$ServletFilterProxy.doFilter(MockFilterChain.java:165)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:132)
+	at org.springframework.test.web.servlet.MockMvc.perform(MockMvc.java:201)
+	at com.aibert.dosw.infrastructure.adapters.in.rest.RecommendationControllerTest.generateRecommendations_internalError_returns500(RecommendationControllerTest.java:166)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:767)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$8(TestMethodTestDescriptor.java:217)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:213)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:138)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:68)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:156)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:198)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:169)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:93)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:58)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:141)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:57)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+19:45:07.767 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.767 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.768 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+19:45:07.797 [main] WARN com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- ValidationError path=/api/v1/recommendations errors=[requestType: requestType debe ser PRODUCTIVIDAD, CARGA o GENERAL]
+19:45:07.828 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.828 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.828 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.885 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.887 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.887 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.926 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:07.926 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:07.926 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:07.969 [main] WARN com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- ValidationError path=/api/v1/recommendations errors=[studentId: El studentId es obligatorio]
+19:45:08.007 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:08.007 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:08.007 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+19:45:08.013 [main] WARN com.aibert.dosw.infrastructure.adapters.in.rest.GlobalExceptionHandler -- MethodNotAllowed path=/api/v1/recommendations method=GET
+19:45:08.053 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+19:45:08.053 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+19:45:08.055 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 2 ms
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.900 s -- in com.aibert.dosw.infrastructure.adapters.in.rest.RecommendationControllerTest
+[INFO] Running com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequestTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.047 s -- in com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqRequestTest
+[INFO] Running com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponseTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in com.aibert.dosw.infrastructure.adapters.out.api.groq.dto.GroqResponseTest
+[INFO] Running com.aibert.dosw.infrastructure.adapters.out.api.groq.GroqAdapterTest
+19:45:08.741 [main] INFO com.aibert.dosw.infrastructure.adapters.out.api.groq.GroqAdapter -- Generando recomendacion (GENERAL) con Groq modelo 'llama-test' para studentId=91
+19:45:08.833 [main] INFO com.aibert.dosw.infrastructure.adapters.out.api.groq.GroqAdapter -- Generando recomendacion (TIME_MANAGEMENT) con Groq modelo 'llama-test' para studentId=77
+19:45:08.840 [main] INFO com.aibert.dosw.infrastructure.adapters.out.api.groq.GroqAdapter -- Generando recomendacion (GENERAL) con Groq modelo 'llama-test' para studentId=55
+19:45:08.841 [main] ERROR com.aibert.dosw.infrastructure.adapters.out.api.groq.GroqAdapter -- Error parseando respuesta de Groq para studentId=55: Unexpected character ('n' (code 110)): was expecting double-quote to start field name
+ at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 2]
+19:45:08.913 [main] WARN com.aibert.dosw.infrastructure.adapters.out.api.groq.GroqAdapter -- Fallback Groq → Mistral activado para studentId=22 debido a: groq down
+19:45:08.927 [main] INFO com.aibert.dosw.infrastructure.adapters.out.api.groq.GroqAdapter -- Generando recomendacion (ACADEMIC) con Groq modelo 'llama-test' para studentId=10
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.732 s -- in com.aibert.dosw.infrastructure.adapters.out.api.groq.GroqAdapterTest
+[INFO] Running com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapterTest
+19:45:09.137 [main] INFO com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapter -- Generando recomendacion (GENERAL) con Mistral modelo 'mistral-small-latest' para studentId=91
+19:45:09.143 [main] WARN com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapter -- Fallback estático activado (Mistral también falló) para studentId=33 debido a: mistral down
+19:45:09.159 [main] INFO com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapter -- Generando recomendacion (TIME_MANAGEMENT) con Mistral modelo 'mistral-small-latest' para studentId=77
+19:45:09.166 [main] INFO com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapter -- Generando recomendacion (GENERAL) con Mistral modelo 'mistral-small-latest' para studentId=55
+19:45:09.167 [main] ERROR com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapter -- Error parseando respuesta de Mistral para studentId=55: Unexpected character ('n' (code 110)): was expecting double-quote to start field name
+ at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 2]
+19:45:09.171 [main] INFO com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapter -- Generando recomendacion (ACADEMIC) con Mistral modelo 'mistral-small-latest' para studentId=20
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.208 s -- in com.aibert.dosw.infrastructure.adapters.out.api.mistral.MistralAdapterTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   GenerateRecommendationUseCaseImplTest.execute_cargaTypeNoContextServiceThrows_fallsBackToGeneral:308 Runtime down
+[INFO] 
+[ERROR] Tests run: 77, Failures: 0, Errors: 1, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  33.331 s
+[INFO] Finished at: 2026-05-19T19:45:09-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test (default-test) on project recommendation-service: 
+[ERROR] 
+[ERROR] See e:\DOSW\superOscholar-recommendation-servic\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

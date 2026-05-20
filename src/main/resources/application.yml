@@ -15,6 +15,20 @@ spring:
       circuitbreaker:
         enabled: true
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: recommendation-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+
 springdoc:
   api-docs:
     enabled: true
@@ -35,14 +49,14 @@ jwt:
 groq:
   api:
     base-url: "https://api.groq.com/openai/v1"
-    key: "${GROQ_API_KEY:}"
+    key: "${GROQ_API_KEY}"
     model: "${GROQ_MODEL:llama-3.3-70b-versatile}"
 
 # --- Configuración Mistral AI ---
 mistral:
   api:
     base-url: "https://api.mistral.ai/v1"
-    key: "${MISTRAL_API_KEY:}"
+    key: "${MISTRAL_API_KEY}"
     model: "${MISTRAL_MODEL:mistral-small-latest}"
 
 # --- URLs de microservicios internos ---
@@ -55,6 +69,9 @@ services:
 
 # --- Feign Client Timeouts ---
 feign:
+  engineplanning-service:
+    url: ${FEIGN_ENGINEPLANNING_SERVICE_URL:http://localhost:8087}
+
   client:
     config:
       default:
@@ -70,6 +87,10 @@ feign:
         readTimeout: 20000
 
       planningServiceClient:
+        connectTimeout: 3000
+        readTimeout: 10000
+
+      engineplanning-service:
         connectTimeout: 3000
         readTimeout: 10000
 
@@ -122,6 +143,11 @@ resilience4j:
       mistralAI:
         timeoutDuration: 20s
 
+# --- Kafka Topics ---
+kafka:
+  topics:
+    notifications: ${KAFKA_TOPIC_NOTIFICATIONS:student-notifications}
+
 management:
   endpoints:
     web:
@@ -151,6 +177,9 @@ spring:
     host: localhost
     port: 5672
 
+  kafka:
+    bootstrap-servers: localhost:9092
+
 ---
 
 spring:
@@ -167,6 +196,9 @@ spring:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT:5672}
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
 ---
 
 spring:
@@ -182,3 +214,6 @@ spring:
   rabbitmq:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT:5672}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
