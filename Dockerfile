@@ -30,7 +30,7 @@ COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 1505
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD sh -c 'wget -qO- "http://localhost:${SERVER_PORT:-8086}/actuator/health" || exit 1'
+  CMD sh -c wget -qO- http://localhost:1505/actuator/health || exit 1
 
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \

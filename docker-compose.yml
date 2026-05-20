@@ -45,7 +45,7 @@ services:
       - recommendationservic_kafka_data:/bitnami/kafka
 
     healthcheck:
-      test: bash -ec 'echo > /dev/tcp/localhost/9092'
+      test: /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
       interval: 10s
       timeout: 5s
       retries: 5
@@ -54,6 +54,9 @@ services:
     build: .
     container_name: recommendationservic-service
     restart: unless-stopped
+
+    env_file:
+      - .env
 
     ports:
       - "1505:8086"
@@ -65,9 +68,9 @@ services:
       SPRING_AUTOCONFIGURE_EXCLUDE: ${SPRING_AUTOCONFIGURE_EXCLUDE}
       AI_PROVIDER: ${AI_PROVIDER}
       GROQ_API_KEY: ${GROQ_API_KEY}
-      GROQ_MODEL: ${GROQ_MODEL}
+      GROQ_MODEL: ${GROQ_MODEL:llama-3.3-70b-versatile}
       MISTRAL_API_KEY: ${MISTRAL_API_KEY}
-      MISTRAL_MODEL: ${MISTRAL_MODEL}
+      MISTRAL_MODEL: ${MISTRAL_MODEL:mistral-small-latest}
       JWT_SECRET: ${JWT_SECRET}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
