@@ -1,8 +1,6 @@
 server:
   port: 1505
 
-
-
 spring:
   application:
     name: recommendation-service
@@ -15,29 +13,11 @@ spring:
       circuitbreaker:
         enabled: true
 
-  kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}}
-    consumer:
-      group-id: recommendation-service
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      enable-auto-commit: false
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-      acks: all
-      retries: 3
-      properties:
-        enable.idempotence: true
-        max.in.flight.requests.per.connection: 5
-        delivery.timeout.ms: 120000
-        request.timeout.ms: 30000
-
 springdoc:
   api-docs:
     enabled: true
     path: /v3/api-docs
+
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
@@ -45,6 +25,7 @@ springdoc:
     try-it-out-enabled: true
     operations-sorter: method
     tags-sorter: alpha
+
   default-produces-media-type: application/json
 
 jwt:
@@ -115,6 +96,7 @@ resilience4j:
         permittedNumberOfCallsInHalfOpenState: 3
         slidingWindowType: COUNT_BASED
         minimumNumberOfCalls: 5
+
       mistralAI:
         registerHealthIndicator: true
         slidingWindowSize: 10
@@ -129,13 +111,16 @@ resilience4j:
       groqAI:
         maxAttempts: 3
         waitDuration: 2s
+
         retryExceptions:
           - feign.FeignException
           - java.io.IOException
           - java.net.SocketTimeoutException
+
       mistralAI:
         maxAttempts: 3
         waitDuration: 2s
+
         retryExceptions:
           - feign.FeignException
           - java.io.IOException
@@ -145,13 +130,9 @@ resilience4j:
     instances:
       groqAI:
         timeoutDuration: 20s
+
       mistralAI:
         timeoutDuration: 20s
-
-# --- Kafka Topics ---
-kafka:
-  topics:
-    notifications: ${KAFKA_TOPIC_NOTIFICATIONS:student-notifications}
 
 management:
   endpoints:
@@ -162,6 +143,10 @@ management:
   endpoint:
     health:
       show-details: never
+
+# =========================================================
+# PROFILE LOCAL
+# =========================================================
 
 ---
 
@@ -176,15 +161,16 @@ spring:
 
   data:
     mongodb:
-      uri: ${MONGO_URI:mongodb://localhost:27017/recommendationservic_db}
+      uri: mongodb://recommendationservic-mongo:27017/recommendationservic_db
       auto-index-creation: true
 
   rabbitmq:
     host: localhost
     port: 5672
 
-  kafka:
-    bootstrap-servers: localhost:9092
+# =========================================================
+# PROFILE QA
+# =========================================================
 
 ---
 
@@ -202,8 +188,9 @@ spring:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT:5672}
 
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+# =========================================================
+# PROFILE PROD
+# =========================================================
 
 ---
 
@@ -221,5 +208,3 @@ spring:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT:5672}
 
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
