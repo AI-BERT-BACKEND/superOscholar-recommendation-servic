@@ -2,6 +2,7 @@ package com.aibert.dosw.infrastructure.adapters.out.feign;
 
 import com.aibert.dosw.domain.model.TaskDTO;
 import com.aibert.dosw.domain.port.out.TaskServicePort;
+import com.aibert.dosw.infrastructure.adapters.out.feign.dto.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -11,11 +12,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Adaptador que obtiene tareas priorizadas del planning-service real vía Feign.
- * Convierte Long studentId (dominio) a String (contrato planning-service) en la
- * capa de infraestructura.
- * Si el servicio no está disponible, retorna datos mock como fallback para
- * desarrollo.
+ * Adaptador que obtiene tareas priorizadas del planning-service real via Feign.
+ * Si el servicio no esta disponible, retorna datos mock como fallback para desarrollo.
  */
 @Component
 public class TaskFeignClientAdapter implements TaskServicePort {
@@ -31,23 +29,22 @@ public class TaskFeignClientAdapter implements TaskServicePort {
     @Override
     public List<TaskDTO> getPrioritizedTasks(String studentId) {
         try {
-            log.info("Consultando planning-service para tareas priorizadas del studentId={}", studentId);
-            List<TaskDTO> tasks = planningFeignClient.getPrioritizedTasks(studentId, false);
+            log.info("Consultando planning-service para tareas priorizadas");
+            ApiResponse<List<TaskDTO>> response = planningFeignClient.getPrioritizedTasks(studentId, false);
+            if (response == null || response.getData() == null) {
+                log.warn("Planning-service respondio sin datos de tareas priorizadas");
+                return getFallbackTasks();
+            }
+            List<TaskDTO> tasks = response.getData();
             log.info("Se obtuvieron {} tareas priorizadas del planning-service", tasks.size());
             return tasks;
         } catch (Exception e) {
-            log.warn("Planning-service no disponible para studentId={}. Usando datos de fallback. Error: {}",
-                    studentId, e.getMessage());
+            log.warn("Planning-service no disponible para tareas priorizadas. Usando fallback. Error: {}",
+                    e.getMessage());
             return getFallbackTasks();
         }
     }
 
-    /**
-     * Datos de fallback para cuando el planning-service no está disponible.
-     * Garantiza que el recommendation-service siga funcionando de forma aislada.
-     * Los valores de priorityLevel usan el esquema real del planning-service:
-     * CRITICAL, HIGH, MEDIUM, LOW
-     */
     private List<TaskDTO> getFallbackTasks() {
         LocalDateTime today = LocalDate.now().atStartOfDay();
         return List.of(
@@ -55,9 +52,9 @@ public class TaskFeignClientAdapter implements TaskServicePort {
                         .priorityLevel("CRITICAL").deadline(today.plusDays(1)).estimatedDurationMinutes(60).build(),
                 TaskDTO.builder().taskId("102").title("Leer Cap. 4").subjectId("HIST-201").priorityScore(8.5)
                         .priorityLevel("HIGH").deadline(today.plusDays(2)).estimatedDurationMinutes(45).build(),
-                TaskDTO.builder().taskId("103").title("Laboratorio Física").subjectId("PHYS-101").priorityScore(8.0)
+                TaskDTO.builder().taskId("103").title("Laboratorio Fisica").subjectId("PHYS-101").priorityScore(8.0)
                         .priorityLevel("MEDIUM").deadline(today.plusDays(5)).estimatedDurationMinutes(90).build(),
-                TaskDTO.builder().taskId("104").title("Ensayo Ética").subjectId("PHIL-301").priorityScore(7.5)
+                TaskDTO.builder().taskId("104").title("Ensayo Etica").subjectId("PHIL-301").priorityScore(7.5)
                         .priorityLevel("MEDIUM").deadline(today.plusDays(10)).estimatedDurationMinutes(120).build(),
                 TaskDTO.builder().taskId("105").title("Ejercicios de Java").subjectId("PROG-201").priorityScore(7.0)
                         .priorityLevel("MEDIUM").deadline(today.plusDays(2)).estimatedDurationMinutes(60).build(),

@@ -1,6 +1,7 @@
 package com.aibert.dosw.infrastructure.adapters.out.feign;
 
 import com.aibert.dosw.domain.model.TaskDTO;
+import com.aibert.dosw.infrastructure.adapters.out.feign.dto.ApiResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,7 +31,8 @@ class TaskFeignClientAdapterTest {
         List<TaskDTO> expected = List.of(
                 TaskDTO.builder().taskId("t1").title("Calculus").priorityLevel("HIGH").build(),
                 TaskDTO.builder().taskId("t2").title("History").priorityLevel("MEDIUM").build());
-        when(planningFeignClient.getPrioritizedTasks("s1", false)).thenReturn(expected);
+        when(planningFeignClient.getPrioritizedTasks("s1", false))
+                .thenReturn(new ApiResponse<>(true, "ok", expected));
 
         List<TaskDTO> result = adapter.getPrioritizedTasks("s1");
 
@@ -108,11 +110,22 @@ class TaskFeignClientAdapterTest {
 
     @Test
     void getPrioritizedTasks_whenEmptyListReturned_returnsEmptyList() {
-        when(planningFeignClient.getPrioritizedTasks("s2", false)).thenReturn(List.of());
+        when(planningFeignClient.getPrioritizedTasks("s2", false))
+                .thenReturn(new ApiResponse<>(true, "ok", List.of()));
 
         List<TaskDTO> result = adapter.getPrioritizedTasks("s2");
 
         assertNotNull(result);
         assertEquals(0, result.size());
+    }
+
+    @Test
+    void getPrioritizedTasks_whenResponseWithoutData_returnsFallbackTasks() {
+        when(planningFeignClient.getPrioritizedTasks("s1", false))
+                .thenReturn(new ApiResponse<>(true, "ok", null));
+
+        List<TaskDTO> result = adapter.getPrioritizedTasks("s1");
+
+        assertEquals(6, result.size());
     }
 }

@@ -1,6 +1,9 @@
 package com.aibert.dosw.infrastructure.adapters.out.feign;
 
 import com.aibert.dosw.domain.model.WeeklyPlanBlock;
+import com.aibert.dosw.infrastructure.adapters.out.feign.dto.ApiResponse;
+import com.aibert.dosw.infrastructure.adapters.out.feign.dto.DistributionPlanResponse;
+import com.aibert.dosw.infrastructure.adapters.out.feign.dto.ScheduledBlockResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -13,6 +16,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,15 +33,21 @@ class WeeklyPlanFeignClientAdapterTest {
 
     @Test
     void getWeeklyPlan_whenServiceAvailable_returnsBlocksFromClient() {
-        List<WeeklyPlanBlock> expected = List.of(
-                WeeklyPlanBlock.builder().taskId("t1").date(WEEK_START).durationMinutes(90).build(),
-                WeeklyPlanBlock.builder().taskId("t2").date(WEEK_START.plusDays(1)).durationMinutes(60).build());
-        when(planningFeignClient.getWeeklyPlan("s1", WEEK_START)).thenReturn(expected);
+        DistributionPlanResponse payload = new DistributionPlanResponse(
+                "s1",
+                List.of(
+                        new ScheduledBlockResponse("t1", "Task 1", WEEK_START.atTime(10, 0), 90, "HIGH"),
+                        new ScheduledBlockResponse("t2", "Task 2", WEEK_START.plusDays(1).atTime(14, 0), 60, "LOW")),
+                "ok");
+        when(planningFeignClient.getWeeklyPlan("s1", WEEK_START))
+                .thenReturn(new ApiResponse<>(true, "ok", payload));
 
         List<WeeklyPlanBlock> result = adapter.getWeeklyPlan("s1", WEEK_START);
 
         assertEquals(2, result.size());
         assertEquals("t1", result.get(0).getTaskId());
+        assertEquals(WEEK_START, result.get(0).getDate());
+        assertEquals(90, result.get(0).getDurationMinutes());
         verify(planningFeignClient).getWeeklyPlan("s1", WEEK_START);
     }
 
@@ -76,7 +86,6 @@ class WeeklyPlanFeignClientAdapterTest {
                 .filter(b -> WEEK_START.equals(b.getDate()))
                 .mapToInt(WeeklyPlanBlock::getDurationMinutes)
                 .sum();
-        // 240 + 180 = 420 > 384 (80% of 480) → overloaded
         assertEquals(420, mondayMinutes);
     }
 
@@ -109,7 +118,9 @@ class WeeklyPlanFeignClientAdapterTest {
 
     @Test
     void getWeeklyPlan_whenEmptyListReturned_returnsEmptyList() {
-        when(planningFeignClient.getWeeklyPlan("s2", WEEK_START)).thenReturn(List.of());
+        DistributionPlanResponse payload = new DistributionPlanResponse("s2", List.of(), "ok");
+        when(planningFeignClient.getWeeklyPlan("s2", WEEK_START))
+                .thenReturn(new ApiResponse<>(true, "ok", payload));
 
         List<WeeklyPlanBlock> result = adapter.getWeeklyPlan("s2", WEEK_START);
 
@@ -127,5 +138,32 @@ class WeeklyPlanFeignClientAdapterTest {
 
         assertEquals(differentWeekStart, result.get(0).getDate());
         assertEquals(differentWeekStart.plusDays(2), result.get(4).getDate());
+    }
+
+    @Test
+    void getWeeklyPlan_whenResponseWithoutData_returnsFallbackPlan() {
+        when(planningFeignClient.getWeeklyPlan("s1", WEEK_START))
+                .thenReturn(new ApiResponse<>(true, "ok", null));
+
+        List<WeeklyPlanBlock> result = adapter.getWeeklyPlan("s1", WEEK_START);
+
+        assertEquals(5, result.size());
+    }
+
+    @Test
+    void getWeeklyPlan_whenScheduledDateIsNull_mapsNullDate() {
+        DistributionPlanResponse payload = new DistributionPlanResponse(
+                "s1",
+                List.of(new ScheduledBlockResponse("t1", "Task 1", null, 30, "MEDIUM")),
+                "ok");
+        when(planningFeignClient.getWeeklyPlan("s1", WEEK_START))
+                .thenReturn(new ApiResponse<>(true, "ok", payload));
+
+        List<WeeklyPlanBlock> result = adapter.getWeeklyPlan("s1", WEEK_START);
+
+        assertEquals(1, result.size());
+        assertEquals("t1", result.get(0).getTaskId());
+        assertNull(result.get(0).getDate());
+        assertEquals(30, result.get(0).getDurationMinutes());
     }
 }
