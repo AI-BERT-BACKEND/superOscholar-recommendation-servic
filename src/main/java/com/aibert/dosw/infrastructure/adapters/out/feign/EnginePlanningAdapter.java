@@ -51,7 +51,7 @@ public class EnginePlanningAdapter implements CriticalRecommendationsPort {
             ApiResponse<CriticalRecommendationsResponse> apiResponse = enginePlanningClient
                     .getCriticalRecommendations(studentId, requestBody);
 
-            if (apiResponse == null || !apiResponse.isSuccess() || apiResponse.getData() == null) {
+            if (apiResponse == null || apiResponse.getData() == null) {
                 log.warn("EnginePlanning respondió sin datos para studentId={} message={}",
                         studentId, apiResponse != null ? apiResponse.getMessage() : "null response");
                 return emptyResult("Sin datos del planning-service", false);
