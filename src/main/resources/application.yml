@@ -55,9 +55,6 @@ services:
 
 # --- Feign Client Timeouts ---
 feign:
-  engineplanning-service:
-    url: ${FEIGN_ENGINEPLANNING_SERVICE_URL}
-
   client:
     config:
       default:
@@ -188,6 +185,13 @@ spring:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT:5672}
 
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  properties:
+    security.protocol: SASL_SSL
+    sasl.mechanism: PLAIN
+    sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$ConnectionString\" password=\"${KAFKA_CONNECTION_STRING}\";"
+
 # =========================================================
 # PROFILE PROD
 # =========================================================
@@ -207,4 +211,11 @@ spring:
   rabbitmq:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT:5672}
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  properties:
+    security.protocol: SASL_SSL
+    sasl.mechanism: PLAIN
+    sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$ConnectionString\" password=\"${KAFKA_CONNECTION_STRING}\";"
 
