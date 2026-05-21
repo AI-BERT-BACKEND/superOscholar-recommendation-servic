@@ -34,7 +34,7 @@ public class SecurityConfig {
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(PUBLIC_PATHS).permitAll()
-                                                .anyRequest().permitAll())
+                                                .anyRequest().denyAll())
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .httpBasic(AbstractHttpConfigurer::disable)

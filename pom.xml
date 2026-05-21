@@ -28,6 +28,17 @@
         <sonar.projectKey>AI-BERT-BACKEND_superOscholar-recommendation-servic</sonar.projectKey>
 
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+
+        <!-- Excluir las mismas clases que JaCoCo para que SonarCloud calcule
+             la cobertura solo sobre el código con lógica de negocio testeable -->
+        <sonar.coverage.exclusions>
+            **/RecommendationServiceApplication.java,
+            **/config/**,
+            **/*MapperImpl.java,
+            **/adapters/out/db/**,
+            **/adapters/out/feign/**,
+            **/filter/**
+        </sonar.coverage.exclusions>
     </properties>
 
     <repositories>
