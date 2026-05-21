@@ -1,10 +1,13 @@
 package com.aibert.dosw.config;
 
 import feign.Logger;
+import feign.RequestInterceptor;
 import feign.codec.ErrorDecoder;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * Configuración global de todos los Feign Clients.
@@ -23,6 +26,23 @@ import org.springframework.context.annotation.Configuration;
 public class FeignClientConfig {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(FeignClientConfig.class);
+
+    /**
+     * Propaga el header Authorization del request entrante a todas las llamadas
+     * Feign salientes. El gateway ya validó el JWT; aquí solo se reenvía.
+     */
+    @Bean
+    public RequestInterceptor authorizationHeaderRelay() {
+        return template -> {
+            var attrs = RequestContextHolder.getRequestAttributes();
+            if (attrs instanceof ServletRequestAttributes sra) {
+                String auth = sra.getRequest().getHeader("Authorization");
+                if (auth != null) {
+                    template.header("Authorization", auth);
+                }
+            }
+        };
+    }
 
     /**
      * Activa logs de Feign al nivel BASIC (método, URL, HTTP status, duración).

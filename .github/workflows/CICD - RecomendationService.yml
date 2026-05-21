@@ -52,7 +52,7 @@ jobs:
 
     env:
       SPRING_PROFILES_ACTIVE: test
-      JWT_SECRET: wwEejxjgXFljx8rgl2axPocLobwRjRQnlgfeLLn9/24DNkFsiZgJweFc1ArLuydrraB3uhINOLGB1zJgRGWpRg==
+      JWT_SECRET: ${{ secrets.JWT_SECRET_TEST }}
 
     steps:
       - name: Checkout repository
@@ -96,7 +96,7 @@ jobs:
 
     env:
       SPRING_PROFILES_ACTIVE: test
-      JWT_SECRET: mySuperUltraSecretKeyForJwtToken123456789ABCDEF
+      JWT_SECRET: ${{ secrets.JWT_SECRET_TEST }}
 
     steps:
       - name: Checkout repository

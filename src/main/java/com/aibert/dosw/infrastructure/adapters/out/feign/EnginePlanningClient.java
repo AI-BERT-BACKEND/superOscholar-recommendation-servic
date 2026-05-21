@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 @FeignClient(name = "engineplanning-service", url = "${feign.engineplanning-service.url}", fallback = EnginePlanningClientFallback.class)
 public interface EnginePlanningClient {
 
-    @PostMapping("/planning/recommendations/critical")
+    @PostMapping("/planning/prioritization/critical")
     ApiResponse<CriticalRecommendationsResponse> getCriticalRecommendations(
             @RequestHeader("X-Student-Id") String studentId,
             @RequestBody(required = false) CriticalRecommendationsRequest request);
