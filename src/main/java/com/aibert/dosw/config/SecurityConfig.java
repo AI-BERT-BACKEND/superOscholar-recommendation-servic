@@ -31,7 +31,7 @@ public class SecurityConfig {
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(AbstractHttpConfigurer::disable)
+                                .csrf(AbstractHttpConfigurer::disable) // NOSONAR: stateless REST API authenticated via JWT; CSRF not applicable
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(PUBLIC_PATHS).permitAll()
                                                 .anyRequest().denyAll())
@@ -49,9 +49,9 @@ public class SecurityConfig {
 
                 // Orígenes permitidos: frontend local + otros microservicios internos
                 config.setAllowedOriginPatterns(List.of(
-                                "http://localhost:[*]",   // cualquier puerto local (React, Angular, etc.)
-                                "https://*.aibert.com",  // dominio de producción del proyecto
-                                "https://*.azurewebsites.net" // Azure Web Apps
+                                "http://localhost:[*]", // NOSONAR: local-dev only; HTTPS not available on loopback
+                                "https://*.aibert.com",
+                                "https://*.azurewebsites.net"
                 ));
 
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

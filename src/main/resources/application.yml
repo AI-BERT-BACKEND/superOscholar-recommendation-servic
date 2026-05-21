@@ -45,18 +45,18 @@ mistral:
     key: "${MISTRAL_API_KEY:}"
     model: "${MISTRAL_MODEL:mistral-small-latest}"
 
-# --- URLs de microservicios internos ---
+# --- URLs de microservicios internos (requeridas vía variable de entorno) ---
 services:
   planning:
-    url: "${PLANNING_SERVICE_URL:http://localhost:1504}"
+    url: "${PLANNING_SERVICE_URL}"
 
   profile:
-    url: "${PROFILE_SERVICE_URL:http://localhost:1505}"
+    url: "${PROFILE_SERVICE_URL}"
 
 # --- Feign Client Timeouts ---
 feign:
   engineplanning-service:
-    url: ${FEIGN_ENGINEPLANNING_SERVICE_URL:http://localhost:1504}
+    url: ${FEIGN_ENGINEPLANNING_SERVICE_URL}
 
   client:
     config:
