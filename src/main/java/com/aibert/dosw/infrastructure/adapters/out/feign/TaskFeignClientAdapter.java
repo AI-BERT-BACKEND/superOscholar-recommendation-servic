@@ -2,6 +2,7 @@ package com.aibert.dosw.infrastructure.adapters.out.feign;
 
 import com.aibert.dosw.domain.model.TaskDTO;
 import com.aibert.dosw.domain.port.out.TaskServicePort;
+import com.aibert.dosw.infrastructure.adapters.out.feign.dto.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -32,7 +33,13 @@ public class TaskFeignClientAdapter implements TaskServicePort {
     public List<TaskDTO> getPrioritizedTasks(String studentId) {
         try {
             log.info("Consultando planning-service para tareas priorizadas del studentId={}", studentId);
-            List<TaskDTO> tasks = planningFeignClient.getPrioritizedTasks(studentId, false);
+            ApiResponse<List<TaskDTO>> response = planningFeignClient.getPrioritizedTasks(studentId, false);
+            if (response == null || response.getData() == null) {
+                log.warn("Planning-service respondió sin datos para studentId={} message={}",
+                        studentId, response != null ? response.getMessage() : "null response");
+                return getFallbackTasks();
+            }
+            List<TaskDTO> tasks = response.getData();
             log.info("Se obtuvieron {} tareas priorizadas del planning-service", tasks.size());
             return tasks;
         } catch (Exception e) {

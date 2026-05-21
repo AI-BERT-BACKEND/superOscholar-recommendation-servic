@@ -2,12 +2,17 @@ package com.aibert.dosw.infrastructure.adapters.out.feign;
 
 import com.aibert.dosw.domain.model.WeeklyPlanBlock;
 import com.aibert.dosw.domain.port.out.WeeklyPlanServicePort;
+import com.aibert.dosw.infrastructure.adapters.out.feign.dto.ApiResponse;
+import com.aibert.dosw.infrastructure.adapters.out.feign.dto.DistributionPlanResponse;
+import com.aibert.dosw.infrastructure.adapters.out.feign.dto.ScheduledBlockResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * AIB-30: Adaptador que obtiene el plan semanal activo del planning-service vía
@@ -30,7 +35,13 @@ public class WeeklyPlanFeignClientAdapter implements WeeklyPlanServicePort {
         try {
             log.info("Consultando planning-service para plan semanal del studentId={}, weekStart={}", studentId,
                     weekStart);
-            List<WeeklyPlanBlock> plan = planningFeignClient.getWeeklyPlan(studentId, weekStart);
+            ApiResponse<DistributionPlanResponse> response = planningFeignClient.getWeeklyPlan(studentId, weekStart);
+            if (response == null || response.getData() == null) {
+                log.warn("Planning-service respondió sin datos para plan semanal studentId={} message={}",
+                        studentId, response != null ? response.getMessage() : "null response");
+                return getFallbackWeeklyPlan(weekStart);
+            }
+            List<WeeklyPlanBlock> plan = mapAssignedBlocks(response.getData().getAssignedBlocks());
             log.info("Se obtuvieron {} bloques del plan semanal para studentId={}", plan.size(), studentId);
             return plan;
         } catch (Exception e) {
@@ -58,5 +69,25 @@ public class WeeklyPlanFeignClientAdapter implements WeeklyPlanServicePort {
                         .date(weekStart.plusDays(2)).durationMinutes(60).priority("LOW").build(),
                 WeeklyPlanBlock.builder().taskId("105").title("Práctica Python")
                         .date(weekStart.plusDays(2)).durationMinutes(45).priority("LOW").build());
+    }
+
+    private List<WeeklyPlanBlock> mapAssignedBlocks(List<ScheduledBlockResponse> assignedBlocks) {
+        if (assignedBlocks == null || assignedBlocks.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return assignedBlocks.stream()
+                .map(this::toWeeklyPlanBlock)
+                .collect(Collectors.toList());
+    }
+
+    private WeeklyPlanBlock toWeeklyPlanBlock(ScheduledBlockResponse block) {
+        return WeeklyPlanBlock.builder()
+                .taskId(block.getTaskId())
+                .title(block.getTitle())
+                .date(block.getScheduledDate() != null ? block.getScheduledDate().toLocalDate() : null)
+                .durationMinutes(block.getEstimatedDurationMinutes())
+                .priority(block.getPriority())
+                .build();
     }
 }
