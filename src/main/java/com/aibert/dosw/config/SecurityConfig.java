@@ -51,7 +51,9 @@ public class SecurityConfig {
                 config.setAllowedOriginPatterns(List.of(
                                 "http://localhost:[*]", // NOSONAR: local-dev only; HTTPS not available on loopback
                                 "https://*.aibert.com",
-                                "https://*.azurewebsites.net"
+                                "https://*.azurewebsites.net",
+                                "https://*.azurecontainerapps.io",
+                                "https://frontend-umber-seven-28.vercel.app"
                 ));
 
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
