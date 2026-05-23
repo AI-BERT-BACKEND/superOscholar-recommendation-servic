@@ -1,5 +1,6 @@
 package com.aibert.dosw.infrastructure.adapters.in.rest.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,11 +24,17 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DailyRecommendationDTO {
+    @Schema(example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
     private String studentId;
     private List<RecommendationItemDTO> recommendations; // R18: Array de 1-5 recomendaciones
-    private String recommendationType; // R18: PRODUCTIVIDAD, CARGA, GENERAL
-    private Double confidenceScore; // R18: Score global combinado (0.0-1.0)
-    private String message; // R18: Mensaje descriptivo obligatorio
-    private String motivationalMessage; // Mensaje motivacional de la IA
+    @Schema(example = "CARGA") // R18: PRODUCTIVIDAD, CARGA, GENERAL
+    private String recommendationType;
+    @Schema(example = "0.87") // R18: Score global combinado (0.0-1.0)
+    private Double confidenceScore;
+    @Schema(example = "Aquí tienes tus recomendaciones") // R18: Mensaje descriptivo obligatorio
+    private String message;
+    @Schema(example = "¡Vas muy bien! Mantén el ritmo y llegarás a la meta.")
+    private String motivationalMessage;
+    @Schema(example = "2026-05-22")
     private LocalDate dateGenerated;
 }

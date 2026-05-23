@@ -1,6 +1,7 @@
 package com.aibert.dosw.infrastructure.adapters.in.rest.dto;
 
 import com.aibert.dosw.domain.model.TaskDTO;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,12 +26,17 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DailyPlanDTO {
+    @Schema(example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
     private String studentId;
+    @Schema(example = "2026-05-22")
     private LocalDate planDate;
     private List<TaskDTO> todayTasks; // R19: Antes "suggestedTasks", renombrado
     private List<TaskDTO> reschedulableTasks; // R19: Tareas reprogramables
     private List<ReorganizationSuggestionDTO> reorganization; // AIB-29: Sugerencias de reorganización semanal
+    @Schema(example = "240")
     private Integer totalEstimatedMinutes;
-    private boolean urgentAlert; // R19: true si deadline < 24h
-    private String message; // R19: Mensaje descriptivo obligatorio
+    @Schema(example = "true") // R19: true si deadline < 24h
+    private boolean urgentAlert;
+    @Schema(example = "Tienes 1 tarea crítica para hoy. ¡Prioriza el parcial!") // R19: Mensaje descriptivo obligatorio
+    private String message;
 }
